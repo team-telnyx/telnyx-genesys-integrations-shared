@@ -1,0 +1,7 @@
+{
+  "deployment_name": "genesys-integrations",
+  "domain": "genesys.example.com",
+  "region": "europe-west1",
+  "zone": "europe-west1-b",
+  "project_id": "your-project-id"
+}

@@ -1,0 +1,297 @@
+{
+  "name": "Telnyx AI Handoff Summary",
+  "startPageId": "be9f73cb-169a-42c8-8a98-d11af70a2fb3",
+  "pages": [
+    {
+      "id": "be9f73cb-169a-42c8-8a98-d11af70a2fb3",
+      "name": "AI Handoff",
+      "properties": {
+        "onLoadAction": { "typeName": "action", "value": {} },
+        "backgroundColor": { "typeName": "color", "value": "#ffffff" }
+      },
+      "dataVersion": 0,
+      "rootContainer": {
+        "type": "verticalStackContainer",
+        "properties": {
+          "margin": { "typeName": "spacing", "value": 0 },
+          "alignment": { "typeName": "alignment", "value": "start" },
+          "width": { "typeName": "sizing", "value": { "sizeType": "stretch", "size": 100 } },
+          "height": { "typeName": "sizing", "value": { "sizeType": "stretch", "size": 100 } },
+          "visible": { "typeName": "variable" },
+          "preserveLayoutLocation": { "typeName": "boolean", "value": false },
+          "backgroundColor": { "typeName": "color", "value": "#ffffff" },
+          "padding": { "typeName": "spacing", "value": 20 },
+          "childArrangement": { "typeName": "childArrangement", "value": "start" },
+          "border": { "typeName": "border", "value": { "width": 0, "style": "solid", "color": "#ffffff" } }
+        },
+        "children": [
+          {
+            "type": "horizontalStackContainer",
+            "properties": {
+              "margin": { "typeName": "spacing", "value": [0, 0, 18, 0] },
+              "alignment": { "typeName": "alignment", "value": "center" },
+              "width": { "typeName": "sizing", "value": { "sizeType": "stretch", "size": 100 } },
+              "height": { "typeName": "sizing", "value": { "sizeType": "auto" } },
+              "visible": { "typeName": "variable" },
+              "preserveLayoutLocation": { "typeName": "boolean", "value": false },
+              "backgroundColor": { "typeName": "color", "value": "#00e3aa" },
+              "padding": { "typeName": "spacing", "value": 16 },
+              "childArrangement": { "typeName": "childArrangement", "value": "start" },
+              "border": { "typeName": "border", "value": { "width": 0, "style": "solid", "color": "#00e3aa" } }
+            },
+            "children": [
+              {
+                "type": "image",
+                "properties": {
+                  "margin": { "typeName": "spacing", "value": [0, 12, 0, 0] },
+                  "alignment": { "typeName": "alignment", "value": "center" },
+                  "width": { "typeName": "sizing", "value": { "sizeType": "pixels", "size": 42 } },
+                  "height": { "typeName": "sizing", "value": { "sizeType": "pixels", "size": 42 } },
+                  "visible": { "typeName": "variable" },
+                  "preserveLayoutLocation": { "typeName": "boolean", "value": false },
+                  "imageSource": { "typeName": "interpolatedText", "value": "__TELNYX_LOGO_URL__" },
+                  "clickAction": { "typeName": "action", "value": {} },
+                  "backgroundColor": { "typeName": "null" }
+                }
+              },
+              {
+                "type": "text",
+                "properties": {
+                  "margin": { "typeName": "spacing", "value": 0 },
+                  "alignment": { "typeName": "alignment", "value": "center" },
+                  "width": { "typeName": "sizing", "value": { "sizeType": "stretch", "size": 100 } },
+                  "height": { "typeName": "sizing", "value": { "sizeType": "auto" } },
+                  "visible": { "typeName": "variable" },
+                  "preserveLayoutLocation": { "typeName": "boolean", "value": false },
+                  "text": { "typeName": "interpolatedText", "value": "Telnyx AI handoff" },
+                  "bold": { "typeName": "boolean", "value": true },
+                  "italic": { "typeName": "boolean", "value": false },
+                  "underline": { "typeName": "boolean", "value": false },
+                  "font": { "typeName": "font", "value": "Arial, \"Helvetica Neue\", Helvetica, sans-serif" },
+                  "fontSize": { "typeName": "integer", "value": 20 },
+                  "justification": { "typeName": "text", "value": "left" },
+                  "backgroundColor": { "typeName": "null" },
+                  "textColor": { "typeName": "color", "value": "#0f172a" },
+                  "padding": { "typeName": "spacing", "value": 0 }
+                }
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "properties": {
+              "margin": { "typeName": "spacing", "value": [0, 0, 4, 0] },
+              "alignment": { "typeName": "alignment", "value": "start" },
+              "width": { "typeName": "sizing", "value": { "sizeType": "stretch", "size": 100 } },
+              "height": { "typeName": "sizing", "value": { "sizeType": "auto" } },
+              "visible": { "typeName": "variable" },
+              "preserveLayoutLocation": { "typeName": "boolean", "value": false },
+              "text": { "typeName": "interpolatedText", "value": "CONVERSATION SUMMARY" },
+              "bold": { "typeName": "boolean", "value": true },
+              "italic": { "typeName": "boolean", "value": false },
+              "underline": { "typeName": "boolean", "value": false },
+              "font": { "typeName": "font", "value": "Arial, \"Helvetica Neue\", Helvetica, sans-serif" },
+              "fontSize": { "typeName": "integer", "value": 11 },
+              "justification": { "typeName": "text", "value": "left" },
+              "backgroundColor": { "typeName": "null" },
+              "textColor": { "typeName": "color", "value": "#00e3aa" },
+              "padding": { "typeName": "spacing", "value": 0 }
+            }
+          },
+          {
+            "type": "text",
+            "properties": {
+              "margin": { "typeName": "spacing", "value": [0, 0, 18, 0] },
+              "alignment": { "typeName": "alignment", "value": "start" },
+              "width": { "typeName": "sizing", "value": { "sizeType": "stretch", "size": 100 } },
+              "height": { "typeName": "sizing", "value": { "sizeType": "auto" } },
+              "visible": { "typeName": "variable" },
+              "preserveLayoutLocation": { "typeName": "boolean", "value": false },
+              "text": { "typeName": "interpolatedText", "value": "{{a111cc93-d5aa-4ce3-91ed-9094e92b0077}}" },
+              "bold": { "typeName": "boolean", "value": false },
+              "italic": { "typeName": "boolean", "value": false },
+              "underline": { "typeName": "boolean", "value": false },
+              "font": { "typeName": "font", "value": "Arial, \"Helvetica Neue\", Helvetica, sans-serif" },
+              "fontSize": { "typeName": "integer", "value": 14 },
+              "justification": { "typeName": "text", "value": "left" },
+              "backgroundColor": { "typeName": "null" },
+              "textColor": { "typeName": "color", "value": "#0f172a" },
+              "padding": { "typeName": "spacing", "value": 0 }
+            }
+          },
+          {
+            "type": "text",
+            "properties": {
+              "margin": { "typeName": "spacing", "value": [0, 0, 6, 0] },
+              "alignment": { "typeName": "alignment", "value": "start" },
+              "width": { "typeName": "sizing", "value": { "sizeType": "stretch", "size": 100 } },
+              "height": { "typeName": "sizing", "value": { "sizeType": "auto" } },
+              "visible": { "typeName": "variable" },
+              "preserveLayoutLocation": { "typeName": "boolean", "value": false },
+              "text": { "typeName": "interpolatedText", "value": "HANDOFF CONTEXT" },
+              "bold": { "typeName": "boolean", "value": true },
+              "italic": { "typeName": "boolean", "value": false },
+              "underline": { "typeName": "boolean", "value": false },
+              "font": { "typeName": "font", "value": "Arial, \"Helvetica Neue\", Helvetica, sans-serif" },
+              "fontSize": { "typeName": "integer", "value": 11 },
+              "justification": { "typeName": "text", "value": "left" },
+              "backgroundColor": { "typeName": "null" },
+              "textColor": { "typeName": "color", "value": "#00e3aa" },
+              "padding": { "typeName": "spacing", "value": 0 }
+            }
+          },
+          {
+            "type": "text",
+            "properties": {
+              "margin": { "typeName": "spacing", "value": [0, 0, 6, 0] },
+              "alignment": { "typeName": "alignment", "value": "start" },
+              "width": { "typeName": "sizing", "value": { "sizeType": "stretch", "size": 100 } },
+              "height": { "typeName": "sizing", "value": { "sizeType": "auto" } },
+              "visible": { "typeName": "variable" },
+              "preserveLayoutLocation": { "typeName": "boolean", "value": false },
+              "text": { "typeName": "interpolatedText", "value": "Intent  ·  {{0ca57e1e-7fd4-4472-9ca9-238f0910091e}}" },
+              "bold": { "typeName": "boolean", "value": false },
+              "italic": { "typeName": "boolean", "value": false },
+              "underline": { "typeName": "boolean", "value": false },
+              "font": { "typeName": "font", "value": "Arial, \"Helvetica Neue\", Helvetica, sans-serif" },
+              "fontSize": { "typeName": "integer", "value": 12 },
+              "justification": { "typeName": "text", "value": "left" },
+              "backgroundColor": { "typeName": "color", "value": "#ffffff" },
+              "textColor": { "typeName": "color", "value": "#334155" },
+              "padding": { "typeName": "spacing", "value": 12 }
+            }
+          },
+          {
+            "type": "text",
+            "properties": {
+              "margin": { "typeName": "spacing", "value": [0, 0, 6, 0] },
+              "alignment": { "typeName": "alignment", "value": "start" },
+              "width": { "typeName": "sizing", "value": { "sizeType": "stretch", "size": 100 } },
+              "height": { "typeName": "sizing", "value": { "sizeType": "auto" } },
+              "visible": { "typeName": "variable" },
+              "preserveLayoutLocation": { "typeName": "boolean", "value": false },
+              "text": { "typeName": "interpolatedText", "value": "Sentiment  ·  {{58f1d985-c0fd-4076-b099-286147fef4b3}}" },
+              "bold": { "typeName": "boolean", "value": false },
+              "italic": { "typeName": "boolean", "value": false },
+              "underline": { "typeName": "boolean", "value": false },
+              "font": { "typeName": "font", "value": "Arial, \"Helvetica Neue\", Helvetica, sans-serif" },
+              "fontSize": { "typeName": "integer", "value": 12 },
+              "justification": { "typeName": "text", "value": "left" },
+              "backgroundColor": { "typeName": "color", "value": "#ffffff" },
+              "textColor": { "typeName": "color", "value": "#334155" },
+              "padding": { "typeName": "spacing", "value": 12 }
+            }
+          },
+          {
+            "type": "text",
+            "properties": {
+              "margin": { "typeName": "spacing", "value": [0, 0, 6, 0] },
+              "alignment": { "typeName": "alignment", "value": "start" },
+              "width": { "typeName": "sizing", "value": { "sizeType": "stretch", "size": 100 } },
+              "height": { "typeName": "sizing", "value": { "sizeType": "auto" } },
+              "visible": { "typeName": "variable" },
+              "preserveLayoutLocation": { "typeName": "boolean", "value": false },
+              "text": { "typeName": "interpolatedText", "value": "Handoff reason  ·  {{635922da-bcc6-4cc4-83b8-c5fa493b83f8}}" },
+              "bold": { "typeName": "boolean", "value": false },
+              "italic": { "typeName": "boolean", "value": false },
+              "underline": { "typeName": "boolean", "value": false },
+              "font": { "typeName": "font", "value": "Arial, \"Helvetica Neue\", Helvetica, sans-serif" },
+              "fontSize": { "typeName": "integer", "value": 12 },
+              "justification": { "typeName": "text", "value": "left" },
+              "backgroundColor": { "typeName": "color", "value": "#fff8e8" },
+              "textColor": { "typeName": "color", "value": "#334155" },
+              "padding": { "typeName": "spacing", "value": 12 }
+            }
+          },
+          {
+            "type": "text",
+            "properties": {
+              "margin": { "typeName": "spacing", "value": [0, 0, 6, 0] },
+              "alignment": { "typeName": "alignment", "value": "start" },
+              "width": { "typeName": "sizing", "value": { "sizeType": "stretch", "size": 100 } },
+              "height": { "typeName": "sizing", "value": { "sizeType": "auto" } },
+              "visible": { "typeName": "variable" },
+              "preserveLayoutLocation": { "typeName": "boolean", "value": false },
+              "text": { "typeName": "interpolatedText", "value": "Target queue  ·  {{8da18bf2-a3fb-40ce-a248-283509cf7d22}}" },
+              "bold": { "typeName": "boolean", "value": false },
+              "italic": { "typeName": "boolean", "value": false },
+              "underline": { "typeName": "boolean", "value": false },
+              "font": { "typeName": "font", "value": "Arial, \"Helvetica Neue\", Helvetica, sans-serif" },
+              "fontSize": { "typeName": "integer", "value": 12 },
+              "justification": { "typeName": "text", "value": "left" },
+              "backgroundColor": { "typeName": "color", "value": "#eef7ff" },
+              "textColor": { "typeName": "color", "value": "#334155" },
+              "padding": { "typeName": "spacing", "value": 12 }
+            }
+          },
+          {
+            "type": "text",
+            "properties": {
+              "margin": { "typeName": "spacing", "value": [0, 0, 6, 0] },
+              "alignment": { "typeName": "alignment", "value": "start" },
+              "width": { "typeName": "sizing", "value": { "sizeType": "stretch", "size": 100 } },
+              "height": { "typeName": "sizing", "value": { "sizeType": "auto" } },
+              "visible": { "typeName": "variable" },
+              "preserveLayoutLocation": { "typeName": "boolean", "value": false },
+              "text": { "typeName": "interpolatedText", "value": "Channel  ·  {{b09cd019-3afc-4c95-a40f-545e13b15f3b}}" },
+              "bold": { "typeName": "boolean", "value": false },
+              "italic": { "typeName": "boolean", "value": false },
+              "underline": { "typeName": "boolean", "value": false },
+              "font": { "typeName": "font", "value": "Arial, \"Helvetica Neue\", Helvetica, sans-serif" },
+              "fontSize": { "typeName": "integer", "value": 12 },
+              "justification": { "typeName": "text", "value": "left" },
+              "backgroundColor": { "typeName": "color", "value": "#ffffff" },
+              "textColor": { "typeName": "color", "value": "#334155" },
+              "padding": { "typeName": "spacing", "value": 12 }
+            }
+          },
+          {
+            "type": "text",
+            "properties": {
+              "margin": { "typeName": "spacing", "value": [0, 0, 0, 0] },
+              "alignment": { "typeName": "alignment", "value": "start" },
+              "width": { "typeName": "sizing", "value": { "sizeType": "stretch", "size": 100 } },
+              "height": { "typeName": "sizing", "value": { "sizeType": "auto" } },
+              "visible": { "typeName": "variable" },
+              "preserveLayoutLocation": { "typeName": "boolean", "value": false },
+              "text": { "typeName": "interpolatedText", "value": "Telnyx correlation  ·  {{231b724d-bc4b-4412-ad74-01fa1e64cb94}}" },
+              "bold": { "typeName": "boolean", "value": false },
+              "italic": { "typeName": "boolean", "value": false },
+              "underline": { "typeName": "boolean", "value": false },
+              "font": { "typeName": "font", "value": "Arial, \"Helvetica Neue\", Helvetica, sans-serif" },
+              "fontSize": { "typeName": "integer", "value": 11 },
+              "justification": { "typeName": "text", "value": "left" },
+              "backgroundColor": { "typeName": "color", "value": "#e8eeeb" },
+              "textColor": { "typeName": "color", "value": "#64748b" },
+              "padding": { "typeName": "spacing", "value": 10 }
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "features": {
+    "dialer": { "properties": { "enabled": { "typeName": "boolean", "value": false }, "contactListId": { "typeName": "text", "value": "" }, "onContactDataLoadAction": { "typeName": "action", "value": {} } } },
+    "scripter": { "properties": { "enabled": { "typeName": "boolean", "value": true } } },
+    "screenPop": { "properties": { "enabled": { "typeName": "boolean", "value": true } } },
+    "callback": { "properties": { "enabled": { "typeName": "boolean", "value": false } } },
+    "chat": { "properties": { "enabled": { "typeName": "boolean", "value": true } } },
+    "email": { "properties": { "enabled": { "typeName": "boolean", "value": false } } },
+    "message": { "properties": { "enabled": { "typeName": "boolean", "value": true } } },
+    "bridge": { "properties": { "enabled": { "typeName": "boolean", "value": false } } },
+    "uuiData": { "properties": { "enabled": { "typeName": "boolean", "value": false } } },
+    "customerSecuredData": { "properties": { "enabled": { "typeName": "boolean", "value": false } } },
+    "list": { "properties": { "enabled": { "typeName": "boolean", "value": false } } }
+  },
+  "variables": [
+    { "id": "a111cc93-d5aa-4ce3-91ed-9094e92b0077", "name": "Summary", "description": "Telnyx AI conversation summary", "type": { "isDynamic": false, "isList": false, "name": "string" }, "value": "", "input": true, "output": false },
+    { "id": "0ca57e1e-7fd4-4472-9ca9-238f0910091e", "name": "Intent", "description": "Detected customer intent", "type": { "isDynamic": false, "isList": false, "name": "string" }, "value": "", "input": true, "output": false },
+    { "id": "58f1d985-c0fd-4076-b099-286147fef4b3", "name": "Sentiment", "description": "Detected customer sentiment", "type": { "isDynamic": false, "isList": false, "name": "string" }, "value": "", "input": true, "output": false },
+    { "id": "635922da-bcc6-4cc4-83b8-c5fa493b83f8", "name": "HandoffReason", "description": "Reason for the AI handoff", "type": { "isDynamic": false, "isList": false, "name": "string" }, "value": "", "input": true, "output": false },
+    { "id": "8da18bf2-a3fb-40ce-a248-283509cf7d22", "name": "QueueName", "description": "Genesys target queue", "type": { "isDynamic": false, "isList": false, "name": "string" }, "value": "", "input": true, "output": false },
+    { "id": "b09cd019-3afc-4c95-a40f-545e13b15f3b", "name": "Channel", "description": "Interaction channel", "type": { "isDynamic": false, "isList": false, "name": "string" }, "value": "", "input": true, "output": false },
+    { "id": "231b724d-bc4b-4412-ad74-01fa1e64cb94", "name": "TelnyxConversationId", "description": "Telnyx AI conversation ID or Call Control ID correlation key", "type": { "isDynamic": false, "isList": false, "name": "string" }, "value": "", "input": true, "output": false }
+  ],
+  "customActions": [],
+  "dataVersion": 0
+}

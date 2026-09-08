@@ -1,0 +1,120 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+/.nyc_output/
+/test-results/
+/playwright-report/
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# operating system and editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# private keys, certificates, and local package-registry credentials
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa*
+id_ed25519*
+.npmrc
+.yarnrc
+.netrc
+.pgpass
+.my.cnf
+.curlrc
+
+# local secrets and provider credentials
+.secrets/
+secrets/
+*.secret
+credentials*.json
+!credentials*.example.json
+service-account*.json
+
+# debug
+*.log
+/logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.har
+*.pcap
+*.pcapng
+
+# environment files; keep only the public empty template
+.env*
+*.env
+*.env.*
+!.env.example
+!*.env.example
+
+# local databases, exports, backups, and recordings
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+*.backup
+*.sql.gz
+/backups/
+/dumps/
+/exports/
+/recordings/
+/transcripts/
+
+# local infrastructure state and provider profiles
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfvars
+*.tfvars.json
+.aws/
+.azure/
+.config/gcloud/
+.serverless/
+docker-compose.override.yml
+
+# Genesys installer plans, journals and locks
+.genesys-tts/
+.genesys-audio/
+.genesys-widget/
+.genesys-admin/
+.genesys-shared/
+.widget-assets/
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# Deployment inputs and generated local artifacts
+/deploy/*/config.json
+/deploy/**/*.tfplan*
+/output/
+/tmp/
+__pycache__/

@@ -1,0 +1,15 @@
+region              = "us-east-2"
+deployment_name     = "genesys-integrations"
+domain              = "genesys.example.com"
+route53_zone_id     = "Z0123456789EXAMPLE"
+acm_certificate_arn = "arn:aws:acm:us-east-2:123456789012:certificate/00000000-0000-0000-0000-000000000000"
+artifact_bucket     = ""
+artifact_prefix     = "genesys-integrations"
+owner_email         = "owner@example.com"
+instance_type       = "t3.medium"
+db_instance_class   = "db.t4g.micro"
+
+# Optional agent for an existing Portainer server. Never use 0.0.0.0/0.
+portainer_agent_enabled = false
+portainer_agent_port    = 9001
+portainer_server_cidrs  = []

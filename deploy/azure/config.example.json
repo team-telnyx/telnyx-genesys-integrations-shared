@@ -1,0 +1,8 @@
+{
+  "deployment_name": "genesys-integrations",
+  "domain": "genesys.example.com",
+  "region": "westeurope",
+  "subscription_id": "00000000-0000-0000-0000-000000000000",
+  "admin_cidr": "203.0.113.10/32",
+  "ssh_public_key": "ssh-ed25519 REPLACE_WITH_YOUR_PUBLIC_KEY"
+}

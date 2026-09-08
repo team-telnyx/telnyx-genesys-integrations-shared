@@ -1,0 +1,78 @@
+name: genesys-integrations
+services:
+  app:
+    image: ${APP_IMAGE:?Application image is required}
+    container_name: genesys-integrations-app
+    init: true
+    restart: unless-stopped
+    env_file:
+      - path: ./app.env
+        format: raw
+    ports: ["127.0.0.1:3000:3000"]
+    networks: [runtime]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    stop_grace_period: 30s
+    volumes:
+      - audio:/app/.genesys-audio
+      - widget:/app/.genesys-widget
+      - admin:/app/.genesys-admin
+      - shared:/app/.genesys-shared
+      - assets:/app/.widget-assets
+  installer:
+    image: ${APP_IMAGE:?Application image is required}
+    profiles: [installer]
+    init: true
+    stdin_open: true
+    tty: true
+    env_file:
+      - path: ./app.env
+        format: raw
+    environment:
+      INSTALLER_ENV_READ_ONLY: "1"
+    command: ["node", "scripts/manage-genesys-deploy.mjs"]
+    networks: [runtime]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    volumes:
+      - audio:/app/.genesys-audio
+      - widget:/app/.genesys-widget
+      - admin:/app/.genesys-admin
+      - shared:/app/.genesys-shared
+  proxy:
+    image: caddy:2.10.2-alpine
+    container_name: genesys-integrations-proxy
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    networks: [runtime]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - certificates:/data
+      - caddy_config:/config
+  cloud-sql-proxy:
+    image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.18.3
+    container_name: genesys-integrations-db-proxy
+    profiles: [gcp]
+    restart: unless-stopped
+    networks: [runtime]
+    command: ["--private-ip", "--address=0.0.0.0", "--port=5432", "${SQL_CONNECTION:-unused}"]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+networks:
+  runtime:
+    name: genesys-integrations-runtime
+volumes:
+  audio:
+    name: gix-a
+  widget:
+    name: gix-w
+  admin:
+    name: gix-d
+  shared:
+    name: gix-s
+  assets:
+    name: gix-x
+  certificates:
+    name: gix-certificates
+  caddy_config:
+    name: gix-caddy-config

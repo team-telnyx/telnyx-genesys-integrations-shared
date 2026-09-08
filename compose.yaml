@@ -1,0 +1,99 @@
+name: telnyx-genesys-integrations
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ${APP_IMAGE:-telnyx-genesys-integrations:local}
+    init: true
+    restart: unless-stopped
+    env_file:
+      - ${APP_ENV_FILE:-.env}
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_DB: ${POSTGRES_DB:-telnyx_genesys}
+      POSTGRES_USER: ${POSTGRES_USER:-telnyx_genesys}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+      POSTGRES_POOL_MAX: ${POSTGRES_POOL_MAX:-10}
+      PGSSLMODE: ${PGSSLMODE:-disable}
+    ports:
+      - "${PORT:-3000}:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+        required: false
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    stop_grace_period: 20s
+    volumes:
+      - genesys_audio_state:/app/.genesys-audio
+      - genesys_widget_state:/app/.genesys-widget
+      - genesys_admin_state:/app/.genesys-admin
+      - genesys_shared_state:/app/.genesys-shared
+      - widget_asset_data:/app/.widget-assets
+
+  installer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ${APP_IMAGE:-telnyx-genesys-integrations:local}
+    profiles: ["installer"]
+    init: true
+    stdin_open: true
+    tty: true
+    env_file:
+      - ${APP_ENV_FILE:-.env}
+    environment:
+      NODE_ENV: production
+      INSTALLER_ENV_READ_ONLY: "1"
+      POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_DB: ${POSTGRES_DB:-telnyx_genesys}
+      POSTGRES_USER: ${POSTGRES_USER:-telnyx_genesys}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+      POSTGRES_POOL_MAX: ${POSTGRES_POOL_MAX:-10}
+      PGSSLMODE: ${PGSSLMODE:-disable}
+    command: ["node", "scripts/manage-genesys-deploy.mjs"]
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    volumes:
+      - genesys_audio_state:/app/.genesys-audio
+      - genesys_widget_state:/app/.genesys-widget
+      - genesys_admin_state:/app/.genesys-admin
+      - genesys_shared_state:/app/.genesys-shared
+
+  postgres:
+    image: postgres:17-alpine
+    profiles: ["bundled-db"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-telnyx_genesys}
+      POSTGRES_USER: ${POSTGRES_USER:-telnyx_genesys}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+    volumes:
+      - widget_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 30s
+
+volumes:
+  widget_postgres_data:
+  widget_asset_data:
+  genesys_audio_state:
+  genesys_widget_state:
+  genesys_admin_state:
+  genesys_shared_state:
