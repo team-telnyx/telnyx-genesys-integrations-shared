@@ -392,14 +392,8 @@ export async function ensureGenesysAiInteractionWidget({
   const normalizedBaseUrl = publicGenesysBaseUrl(baseUrl);
   const widgetUrl = `${normalizedBaseUrl}${WIDGET_PATH}?conversationId={{gcConversationId}}`;
   const iconUrl = `${normalizedBaseUrl}/telnyx_logo_black.png`;
-  const groupIds = [...new Set([
-    ...((current.properties?.groups || []).map((id) => String(id || "").trim())),
-    ...groups.map((group) => group.id),
-  ].filter(Boolean))];
-  const queueIds = [...new Set([
-    ...((current.properties?.queueIdFilterList || []).map((id) => String(id || "").trim())),
-    ...queues.map((queue) => queue.id),
-  ].filter(Boolean))];
+  const groupIds = [...new Set(groups.map((group) => group.id).filter(Boolean))];
+  const queueIds = [...new Set(queues.map((queue) => queue.id).filter(Boolean))];
   let config;
   try {
     config = await integrationsApi.putIntegrationConfigCurrent(integration.id, {

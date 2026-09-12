@@ -76,6 +76,7 @@ import {
 const execFileAsync = promisify(execFile);
 const AUDIO_CONNECTOR_TYPE = "audio-connector";
 const INTERACTION_WIDGET_TYPE = "embedded-client-app-interaction-widget";
+const INTERACTION_WIDGET_PATH = "/genesys/ai-conversation-widget?conversationId={{gcConversationId}}";
 export const PRIMARY_AUDIO_DEPLOYMENT_ID = "CECA32";
 const AUDIO_APPLY_LABELS = Object.freeze({
   managedAssistant: "Create or update the default Telnyx AI assistant",
@@ -787,6 +788,35 @@ export async function managedHandoffScriptNeedsReconcile(context, deployment, ex
   );
 }
 
+function sameStringSet(left = [], right = []) {
+  const normalize = (values) => [...new Set(
+    values.map((value) => String(value || "").trim()).filter(Boolean)
+  )].sort();
+  return normalize(left).join("\n") === normalize(right).join("\n");
+}
+
+export async function managedInteractionWidgetNeedsReconcile(
+  context,
+  deployment,
+  { expectedName, baseUrl, groupIds = [], queueIds = [] } = {}
+) {
+  const widgetId = String(deployment?.resources?.widgetId || "").trim();
+  if (!widgetId || !context.integrationsApi) return true;
+  const [widget, config] = await Promise.all([
+    readRemoteResource(() => context.integrationsApi.getIntegration(widgetId)),
+    readRemoteResource(() => context.integrationsApi.getIntegrationConfigCurrent(widgetId)),
+  ]);
+  if (!widget || !config) return true;
+  const normalizedBaseUrl = String(baseUrl || "").replace(/\/$/, "");
+  const properties = config.properties || {};
+  return widget.name !== expectedName ||
+    widget.integrationType?.id !== INTERACTION_WIDGET_TYPE ||
+    String(widget.intendedState || "").toUpperCase() !== "ENABLED" ||
+    properties.url !== `${normalizedBaseUrl}${INTERACTION_WIDGET_PATH}` ||
+    !sameStringSet(properties.groups || [], groupIds) ||
+    !sameStringSet(properties.queueIdFilterList || [], queueIds);
+}
+
 export async function createAudioInstallationPlan(
   context,
   {
@@ -1031,6 +1061,14 @@ export async function createAudioInstallationPlan(
     current,
     handoffScriptName
   );
+  const interactionWidgetDrifted = current
+    ? await managedInteractionWidgetNeedsReconcile(context, current, {
+        expectedName: installationNames.audioInteractionWidget,
+        baseUrl: publicGenesysBaseUrl(),
+        groupIds: desiredGroupIds,
+        queueIds: desiredQueueIds,
+      })
+    : true;
   const plan = {
     schemaVersion: 10,
     planId: randomUUID(),
@@ -1100,7 +1138,7 @@ export async function createAudioInstallationPlan(
       callRouteChanged: !current || !current?.resources?.callRouteId || dnisChanged ||
         callRouteResolution.takeovers.length > 0 || directOwnerTakeovers.length > 0,
       interactionWidgetChanged: !current || widgetAccessChanged || queuePolicyChanged ||
-        current?.publicBaseUrl !== publicGenesysBaseUrl(),
+        current?.publicBaseUrl !== publicGenesysBaseUrl() || interactionWidgetDrifted,
       handoffScriptChanged,
       addedAssistants: addedAssistantIds.map((id) => ({
         id,
