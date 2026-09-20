@@ -22,13 +22,15 @@ DB_INSTANCE_CLASS=${DB_INSTANCE_CLASS:-db.t4g.micro}
 PORTAINER_AGENT_ENABLED=${PORTAINER_AGENT_ENABLED:-}
 PORTAINER_AGENT_PORT=${PORTAINER_AGENT_PORT:-}
 PORTAINER_SERVER_CIDRS=${PORTAINER_SERVER_CIDRS:-}
+FDE_ENABLED=${TF_VAR_fde_enabled:-false}
+FDE_FLAG=false
 YES=false
 TEMP_DIR=""
 ARTIFACT_S3_PREFIX=""
 
 usage() {
   cat <<'EOF'
-Usage: ./deploy/aws/deploy.sh <command> [--yes]
+Usage: ./deploy/aws/deploy.sh <command> [--yes] [--fde]
 
 Commands:
   plan       Initialize Terraform and show the infrastructure plan (read-only in AWS)
@@ -39,6 +41,7 @@ Commands:
   destroy    Plan and destroy Terraform-managed infrastructure (confirmation required)
 
 Options:
+  --fde, -fde  Enable AWS discovery and management tags for FDE CLI (default: off)
 
 Environment overrides:
   AWS_PROFILE, AWS_REGION, DEPLOYMENT_NAME, DOMAIN, ROUTE53_ZONE_NAME,
@@ -73,7 +76,11 @@ aws_cli() {
 }
 
 terraform_cli() {
-  terraform -chdir="$TF_DIR" "$@"
+  if [ "$1" = plan ] && [ "$FDE_FLAG" = true ]; then
+    terraform -chdir="$TF_DIR" "$@" -var=fde_enabled=true
+  else
+    terraform -chdir="$TF_DIR" "$@"
+  fi
 }
 
 confirm() {
@@ -259,8 +266,22 @@ build_and_upload_artifact() {
   artifact_dir="$TEMP_DIR/artifact"
   mkdir -p "$artifact_dir"
 
-  echo "[deploy] Building $image_name for linux/amd64"
-  docker build --platform linux/amd64 --file "$REPO_ROOT/Dockerfile" --tag "$image_name" "$REPO_ROOT"
+  # The Docker context excludes .git, so identity is captured here on the host
+  # and passed in. Without it every image would call itself a development build
+  # even when it was cut from a release tag.
+  local build_info display_version commit built_at
+  build_info=$(cd "$REPO_ROOT" && node scripts/build-info.mjs)
+  display_version=$(node -p 'JSON.parse(process.argv[1]).displayVersion' "$build_info")
+  commit=$(node -p 'JSON.parse(process.argv[1]).commit || "unknown"' "$build_info")
+  built_at=$(node -p 'JSON.parse(process.argv[1]).builtAt' "$build_info")
+
+  echo "[deploy] Building $image_name ($display_version) for linux/amd64"
+  docker build --platform linux/amd64 --file "$REPO_ROOT/Dockerfile" \
+    --build-arg GI_BUILD_INFO="$build_info" \
+    --label org.opencontainers.image.version="$display_version" \
+    --label org.opencontainers.image.revision="$commit" \
+    --label org.opencontainers.image.created="$built_at" \
+    --tag "$image_name" "$REPO_ROOT"
   docker save "$image_name" | zstd -T0 -3 -o "$artifact_dir/image.tar.zst"
 
   if command -v sha256sum >/dev/null 2>&1; then
@@ -270,12 +291,12 @@ build_and_upload_artifact() {
   fi
   printf '%s  %s\n' "$checksum" "image.tar.zst" > "$artifact_dir/image.tar.zst.sha256"
 
-  python3 - "$artifact_dir/manifest.json" "$image_name" "$short_sha" "$build_id" <<'PY'
+  python3 - "$artifact_dir/manifest.json" "$image_name" "$short_sha" "$build_id" "$build_info" <<'PY'
 import json
 import sys
-from datetime import datetime, timezone
 
-path, image, git_sha, build_id = sys.argv[1:]
+path, image, git_sha, build_id, build_info = sys.argv[1:]
+build = json.loads(build_info)
 with open(path, "w", encoding="utf-8") as fh:
     json.dump({
         "app": "telnyx-genesys-integrations",
@@ -283,7 +304,12 @@ with open(path, "w", encoding="utf-8") as fh:
         "git_sha": git_sha,
         "build_id": build_id,
         "docker_platform": "linux/amd64",
-        "built_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        # Version and timestamp come from the same snapshot the image was built
+        # with, so the manifest cannot describe a different build than the one
+        # it sits beside.
+        "version": build["version"],
+        "built_at": build["builtAt"],
+        "build": build,
     }, fh, indent=2)
     fh.write("\n")
 PY
@@ -415,12 +441,20 @@ shift || true
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --yes|-y) YES=true ;;
+    --fde|-fde) FDE_ENABLED=true; FDE_FLAG=true ;;
     --help|-h) usage; exit 0 ;;
     *) die "Unknown option: $1" ;;
   esac
   shift
 done
 
+case "$FDE_ENABLED" in
+  true|false) export TF_VAR_fde_enabled="$FDE_ENABLED" ;;
+  *) die "TF_VAR_fde_enabled must be true or false" ;;
+esac
+if [ "$FDE_FLAG" = true ] && [[ "$COMMAND" =~ ^(update|bootstrap|status)$ ]]; then
+  echo "[deploy] This command does not change infrastructure tags; use up --fde to enable discovery."
+fi
 
 case "$COMMAND" in
   plan)

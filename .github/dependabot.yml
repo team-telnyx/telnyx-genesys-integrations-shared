@@ -1,0 +1,113 @@
+# Dependabot configuration.
+#
+# Until this file existed the repository ran on GitHub's defaults: one pull
+# request per advisory and no grouping at all. GitHub caps the security-update
+# queue at ten open pull requests, and nine single-package lockfile bumps sat
+# unreviewed from February to May — long enough that every one of them was
+# already superseded by an ordinary `yarn install`, while the two critical
+# Next.js advisories (GHSA image-optimization RCE, windows-host RCE) never got
+# a pull request at all because the queue was full.
+#
+# Everything below is grouped so the queue cannot fill up again: all open
+# advisories arrive as a single pull request, and version updates as one batch
+# per week and per dependency type. Major version updates are deliberately left
+# out of the groups, so each one still arrives as its own pull request to be
+# reviewed and smoke-tested on its own.
+#
+# Every entry also carries a cooldown: a newly published version is not proposed
+# until it has been on the registry for a week. A package account can be
+# compromised and a malicious release published under a name the lockfile
+# already trusts, and that window is when such a release is usually caught and
+# pulled. The cooldown applies ONLY to version updates — GitHub exempts security
+# updates from it, so an advisory with a published fix still arrives at once.
+#
+# Note for reviewers: tests/dependency-upgrades.test.mjs pins the exact
+# declared versions of next, react, react-dom, telnyx and the two purecloud
+# SDKs. A Dependabot pull request that moves one of them fails CI until that
+# assertion is updated in the same pull request — that is the intended
+# workflow, not a bug.
+
+version: 2
+
+updates:
+  # ---------------------------------------------------------------------------
+  # The application itself (root package.json + yarn.lock). There is only one
+  # manifest in the repository; deploy/cli.mjs and scripts/* run on these deps.
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Warsaw
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+    labels: ["dependencies"]
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+    groups:
+      # Every open advisory in one pull request, as soon as one appears.
+      npm-security:
+        applies-to: security-updates
+        patterns: ["*"]
+      npm-production:
+        applies-to: version-updates
+        dependency-type: production
+        update-types: ["minor", "patch"]
+      npm-development:
+        applies-to: version-updates
+        dependency-type: development
+        update-types: ["minor", "patch"]
+
+  # ---------------------------------------------------------------------------
+  # Workflow actions — one batch, so pinned action majors stay current.
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 2
+    cooldown:
+      default-days: 7
+    labels: ["dependencies", "ci"]
+    commit-message:
+      prefix: "chore(ci)"
+    groups:
+      github-actions:
+        patterns: ["*"]
+
+  # ---------------------------------------------------------------------------
+  # The production image base. Dependabot alerts never cover a Dockerfile FROM,
+  # so without this the runtime image silently ages past its distro patches.
+  #
+  # Majors are ignored. The first run of this ecosystem proposed
+  # node:22-bookworm-slim -> node:25-bookworm-slim, and 25 is an odd-numbered
+  # Node line that never becomes LTS — not something to run in production. Even
+  # the move to a real LTS (24, Krypton) is not a bot's call here: the Node
+  # major has to change in the Dockerfile, in the node-version of
+  # .github/workflows/ci.yml and in @types/node at the same time, or CI stops
+  # testing what the image actually runs.
+  #
+  # Minor and patch bumps still flow, which is the point: those carry the
+  # bookworm-slim distro patches for the Node line already in use.
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: docker
+    directory: "/"
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 1
+    cooldown:
+      default-days: 7
+    labels: ["dependencies", "docker"]
+    commit-message:
+      prefix: "chore(docker)"
+    ignore:
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]
+    groups:
+      docker:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]

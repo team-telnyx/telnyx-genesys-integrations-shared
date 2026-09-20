@@ -1,0 +1,34 @@
+name: Application versioning
+
+# Guards the release metadata on every pull request, so drift is found while it
+# is still cheap. The expensive failure this prevents is a tag: the release
+# workflow runs the same `release.mjs` checks, and a mismatch discovered there
+# means an already-pushed tag has to be deleted and recut.
+#
+# `release:check` compares the generated README badge against package.json and
+# CHANGELOG.md rather than rewriting it, so CI reports drift instead of
+# committing a fix behind the author's back.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  versioning:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+      - run: corepack enable
+      - run: yarn install --immutable
+      - name: Release metadata is consistent
+        run: yarn release:check
+      - name: Build identity behaves as documented
+        run: node --test tests/application-version.test.mjs

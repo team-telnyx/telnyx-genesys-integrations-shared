@@ -59,6 +59,7 @@ Authenticate to your own cloud account:
   (`roles/iam.serviceAccountUser`). These operator roles are not granted by the
   stack. The VM gets only its own secret/artifact access and Cloud SQL access.
 
+AWS also has an optional internal `--fde` switch; see [AWS deployment](aws/README.md#optional-internal-fde-integration).
 
 Cloud provider credentials, Genesys OAuth credentials and Telnyx API keys do
 not belong in deployment JSON or Terraform variables.
@@ -242,16 +243,20 @@ Git history separately: ignore rules do not remove previously committed data.
 ## Validation without provisioning
 
 ```bash
+node --test tests/aws-deployment.test.mjs tests/cloud-deployment.test.mjs
 terraform fmt -check -recursive deploy
 terraform -chdir=deploy/azure/terraform init -backend=false
 terraform -chdir=deploy/azure/terraform validate
+terraform -chdir=deploy/azure/terraform test
 terraform -chdir=deploy/gcp/terraform init -backend=false
 terraform -chdir=deploy/gcp/terraform validate
+terraform -chdir=deploy/gcp/terraform test
 ```
 
-Validation checks configuration syntax. It does not establish account permissions,
-quotas, region capacity or working public DNS. Verify those with a reviewed plan
-and a first deployment in your own account.
+Terraform tests use mock providers and do not access cloud resources. They do
+not establish that a particular account has the required permissions, quotas,
+region capacity or working public DNS. Verify those with a reviewed plan and
+a first deployment in your own account.
 
 Provider references: [Azure VM Run Command](https://learn.microsoft.com/en-us/azure/virtual-machines/linux/run-command),
 [Cloud SQL Auth Proxy](https://docs.cloud.google.com/sql/docs/postgres/connect-auth-proxy),

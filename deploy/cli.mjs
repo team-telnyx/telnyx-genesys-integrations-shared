@@ -23,12 +23,17 @@ export function parseArguments(argv) {
       if (!value || value.startsWith("--")) throw new Error(`${arg} requires a value`);
       options[{ "--target": "target", "--config": "config", "--ssh-key": "sshKey" }[arg]] = value === "google" && arg === "--target" ? "gcp" : value;
     } else if (["--yes", "-y"].includes(arg)) options.yes = true;
+    else if (["--fde", "-fde"].includes(arg)) options.fde = true;
     else if (arg === "--configure") options.configure = true;
     else if (arg === "--dry-run") options.dryRun = true;
     else if (["--help", "-h"].includes(arg)) options.help = true;
     else options.localArgs.push(arg);
   }
   if (options.target && !targets.includes(options.target)) throw new Error("--target must be local, aws, azure or gcp");
+  if (options.fde) {
+    options.target ??= "aws";
+    if (options.target !== "aws") throw new Error("--fde is supported only for AWS");
+  }
   return options;
 }
 
@@ -50,6 +55,7 @@ function help() {
        npm run deploy -- [options]
 
   --target local|aws|azure|gcp   Deployment target (interactive menu, or local without a TTY)
+  --fde                        Enable optional AWS FDE discovery tags (-fde also accepted)
   --config PATH                JSON infrastructure inputs (default: deploy/<target>/config.json)
   --configure                  Edit saved inputs interactively (up or plan)
   --yes                        Accept apply/update/destroy confirmation
@@ -121,7 +127,7 @@ export async function main(argv = process.argv.slice(2)) {
   }
   if (options.target === "aws") {
     if (options.dryRun) {
-      console.log(`[deploy] AWS ${options.command}: ${join(root, "deploy/aws/deploy.sh")} ${options.command}`);
+      console.log(`[deploy] AWS ${options.command}: ${join(root, "deploy/aws/deploy.sh")} ${options.command}${options.fde || config?.fde_enabled ? " --fde" : ""}`);
       console.log(`[deploy] Inputs: ${configFile}; no files, AWS resources or containers changed`);
       return;
     }
@@ -130,7 +136,7 @@ export async function main(argv = process.argv.slice(2)) {
       env[key === "region" ? "AWS_REGION" : key.toUpperCase()] = typeof value === "object" ? JSON.stringify(value) : String(value);
     }
     if (Array.isArray(config?.portainer_server_cidrs)) env.PORTAINER_SERVER_CIDRS = config.portainer_server_cidrs.join(",");
-    run("bash", [join(root, "deploy/aws/deploy.sh"), options.command, ...(options.yes ? ["--yes"] : [])], { env, cwd: root });
+    run("bash", [join(root, "deploy/aws/deploy.sh"), options.command, ...(options.yes ? ["--yes"] : []), ...(options.fde ? ["--fde"] : [])], { env, cwd: root });
   } else {
     await cloudDeploy({ ...options, root, config, confirm });
   }

@@ -61,3 +61,21 @@ final snapshot unless `db_skip_final_snapshot` is explicitly enabled. An owned
 nonempty artifact bucket must be archived/emptied before Terraform can delete
 it. Keep the encryption key and database backup together.
 
+## Optional internal FDE integration
+
+Standard AWS remains the default. Enable FDE discovery/management tags with:
+
+```bash
+./deploy/deploy plan --target aws --fde
+./deploy/deploy up --target aws --fde
+# The shell entrypoint also supports --fde (alias: -fde).
+./deploy/aws/deploy.sh up --fde
+```
+
+To retain the setting across infrastructure runs, add `"fde_enabled": true`
+to your ignored `deploy/aws/config.json`. A command-line `--fde` overrides a
+false config value for that invocation without rewriting the config file.
+Without the flag or a persisted true setting, the next infrastructure apply
+removes the FDE tags. `update`, `status` and `bootstrap` do not change tags.
+
+See [internal FDE integration and public-sync exclusions](../../docs/INTERNAL_AWS_FDE_DEPLOYMENT.md).
