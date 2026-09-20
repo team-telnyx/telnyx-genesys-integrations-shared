@@ -1,5 +1,9 @@
 # Telnyx integrations for Genesys Cloud
 
+<!-- app-version:start -->
+[![Version 1.0.0](https://img.shields.io/badge/version-1.0.0-00C389)](https://github.com/team-telnyx/telnyx-genesys-integrations/releases)
+<!-- app-version:end -->
+
 A Next.js application and administration toolkit for connecting Telnyx services
 to Genesys Cloud. The repository contains independent modules for SMS and MMS,
 Number Lookup campaigns, Telnyx text-to-speech providers, and Telnyx AI
@@ -92,6 +96,7 @@ Open [http://localhost:3000](http://localhost:3000). Useful local pages include:
 - `/number-lookup` — individual Number Lookup requests;
 - `/number-lookup-campaign` — contact-list Number Lookup;
 - `/genesys-notifications` — Genesys notification monitoring;
+- `/test` — local integration test utilities;
 - `/docs` — application API examples.
 
 Before production use, build and run the production server:
@@ -583,7 +588,8 @@ The managed assistant defines every Genesys-provided dynamic variable with an
 empty default. This makes a missing `session.update` value visible instead of
 silently substituting test data. Its runtime instructions may use the caller
 number, display name, called number, language, `first_name`, and `last_name`
-only when they are non-empty. Configure customer context in the Architect flow inputs. The assistant is also instructed not
+only when they are non-empty. The generated Architect flow still sends the
+literal `John`/`Wick` examples at runtime. The assistant is also instructed not
 to disclose internal Genesys identifiers.
 
 Architect flows can pass additional string values through the **Inputs** list
@@ -598,9 +604,12 @@ example:
 | `telnyxVar_account_tier` | `account_tier` |
 | `telnyxVar_preferred_language` | `preferred_language` |
 
-Managed Audio Connector flows include empty `telnyxVar_first_name` and
-`telnyxVar_last_name` inputs. Configure them in Architect using actual flow,
-task, participant, or data-action values; they arrive as `first_name` and `last_name`.
+Every managed Audio Connector flow includes two literal examples in the
+Call Audio Connector action: `telnyxVar_first_name="John"` and
+`telnyxVar_last_name="Wick"`. Telnyx receives them as `first_name` and
+`last_name`. Open the reusable Audio Connector task in Architect to edit or
+remove the examples, or replace the literals with flow, task, participant, or
+data-action expressions.
 
 Only explicitly prefixed inputs are forwarded; `assistantId` and all other
 AudioHook inputs are excluded. Names after the prefix must use lower-case
@@ -628,13 +637,13 @@ added as an exact Next.js development origin so client assets can load through
 the active Quick Tunnel without enabling a global `*.trycloudflare.com`
 wildcard.
 
-The widget provides:
+The widget reuses the demo portal's conversation components and presentation:
 role-colored chat bubbles, the summary with intent and sentiment badges,
 ordered insight cards, human-readable metadata, dynamic-variable webhook data,
 and the detailed session-cost chart and component breakdown. It deliberately
 keeps this repository's stateless REST loading and short background refresh
 sequence instead of introducing a database dependency. The Genesys widget
-route uses a theme controller that always forces light mode,
+route also uses the demo portal's theme controller and always forces light mode,
 independently of the application, operating-system, or Genesys theme.
 
 Use the Audio Connector section in Web Admin. It retrieves all Genesys queues
@@ -695,11 +704,13 @@ proxy is required. Start both protocols with `npm run dev` or, after a build,
 ## Development and validation
 
 ```bash
+yarn test
 yarn lint
 yarn build
 ```
 
-Live installer commands display a plan and require explicit
+The installer test suite uses mocks and does not create Telnyx or Genesys
+resources. Live installer commands display a plan and require explicit
 confirmation before mutations.
 
 ## Repository safety

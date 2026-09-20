@@ -27,7 +27,7 @@ export function validateConfig(target, config) {
   if (!config || typeof config !== "object" || Array.isArray(config)) throw new Error("Configuration must be a JSON object");
   const common = ["deployment_name", "domain", "region", "instance_type"];
   const fields = {
-    aws: ["route53_zone_id", "route53_zone_name", "acm_certificate_arn", "artifact_bucket", "artifact_prefix", "owner_email", "db_instance_class", "root_volume_size", "db_allocated_storage", "db_backup_retention_days", "db_skip_final_snapshot", "vpc_cidr", "public_subnet_cidrs", "private_subnet_cidrs", "alb_deletion_protection", "portainer_agent_enabled", "portainer_agent_port", "portainer_server_cidrs", "tags"],
+    aws: ["fde_enabled", "fde_github_owner", "fde_github_repo", "fde_github_workflow", "route53_zone_id", "route53_zone_name", "acm_certificate_arn", "artifact_bucket", "artifact_prefix", "owner_email", "db_instance_class", "root_volume_size", "db_allocated_storage", "db_backup_retention_days", "db_skip_final_snapshot", "vpc_cidr", "public_subnet_cidrs", "private_subnet_cidrs", "alb_deletion_protection", "portainer_agent_enabled", "portainer_agent_port", "portainer_server_cidrs", "tags"],
     azure: ["dns_zone_name", "dns_zone_resource_group", "subscription_id", "ssh_public_key", "admin_cidr", "db_instance_type", "disk_size_gb"],
     gcp: ["project_id", "zone", "db_instance_type", "disk_size_gb", "db_deletion_protection"],
   };
@@ -51,6 +51,10 @@ export function validateConfig(target, config) {
     if (!new RegExp(`^${config.region}-[a-z]$`).test(config.zone || "")) throw new Error("zone must belong to region");
   }
   if (target === "aws") {
+    if (config.fde_enabled !== undefined && typeof config.fde_enabled !== "boolean") throw new Error("fde_enabled must be a boolean");
+    for (const name of ["fde_github_owner", "fde_github_repo", "fde_github_workflow"]) {
+      if (config[name] !== undefined && (typeof config[name] !== "string" || !config[name].trim())) throw new Error(`${name} must be a nonempty string`);
+    }
     if (!config.route53_zone_id && !config.route53_zone_name) throw new Error("route53_zone_id or route53_zone_name is required");
     if (!config.acm_certificate_arn && !config.route53_zone_name) throw new Error("acm_certificate_arn or route53_zone_name is required");
     if (!config.owner_email) throw new Error("owner_email is required");

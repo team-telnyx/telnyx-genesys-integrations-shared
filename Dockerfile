@@ -8,6 +8,13 @@ COPY package.json yarn.lock .yarnrc.yml ./
 RUN yarn install --immutable
 
 FROM dependencies AS builder
+# .dockerignore excludes .git, so the build cannot derive its own identity.
+# The build host captures a snapshot (scripts/build-info.mjs) and passes it
+# here; next.config.mjs validates its version against the package.json that
+# actually ships. Without it the image is honestly labelled a development
+# build rather than silently claiming a release.
+ARG GI_BUILD_INFO=""
+ENV GI_BUILD_INFO=$GI_BUILD_INFO
 COPY . .
 RUN yarn build
 
@@ -27,6 +34,10 @@ COPY --from=builder --chown=nextjs:nodejs /app/lib ./lib
 COPY --from=builder --chown=nextjs:nodejs /app/genesys ./genesys
 COPY --from=builder --chown=nextjs:nodejs /app/server.mjs ./server.mjs
 COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
+# next.config.mjs is loaded again at run time and imports scripts/lib, which is
+# why scripts/ ships above. GI_BUILD_INFO is deliberately *not* carried into
+# this stage: the identity is already compiled into .next, and no runtime
+# variable may relabel a built image.
 COPY --from=builder --chown=nextjs:nodejs /app/next.config.mjs ./next.config.mjs
 COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
 

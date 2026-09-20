@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import { APP_BUILD, versionInfoText } from "@/lib/app-version.mjs";
 import {
   Activity, AudioLines, Bot, CalendarClock, Check, ChevronLeft, ChevronRight, CircleAlert,
   ExternalLink, Eye, Globe2, LayoutDashboard, Loader2, LogIn, MessageSquareText, Pencil, Play, Plus,
@@ -2394,7 +2395,10 @@ export default function AdminConsole() {
             <div className="h-5 w-px bg-border" aria-hidden="true" />
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold">Telnyx integrations for Genesys Cloud</p>
-              <p className="hidden truncate text-xs text-muted-foreground sm:block">{inventory.organization?.name} · signed in as {auth.user.userName}</p>
+              {/* The running version belongs where an operator already looks. The
+                  title carries the full identity — commit, build id, channel —
+                  so support can read it without shell access to the host. */}
+              <p className="hidden truncate text-xs text-muted-foreground sm:block">{inventory.organization?.name} · signed in as {auth.user.userName}{APP_BUILD ? <> · <span title={versionInfoText()}>v{APP_BUILD.displayVersion}</span></> : null}</p>
             </div>
             <div className="ml-auto flex shrink-0 items-center gap-2">
               <GenesysThemeToggle defaultTheme="light" variant="toolbar" />

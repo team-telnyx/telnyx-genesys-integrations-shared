@@ -1,0 +1,93 @@
+name: CI
+
+# Nothing in CI ran the validation gate until now. The only workflow in the
+# repository is a manual `workflow_dispatch` image build, so a pull request
+# could break `yarn lint`, `yarn test` or `yarn build` with no signal at all —
+# CLAUDE.md asks for all three before every commit, and nothing enforced it.
+#
+# That gap is what let nine Dependabot pull requests sit for months: with no
+# check on them there was nothing to look at, so nobody looked.
+#
+# The three steps run independently and the job fails at the end, so one broken
+# step never hides the result of the other two.
+#
+# The weekly run exists so drift on `main` surfaces on its own — a lockfile
+# that stops resolving, or a transitive dependency that breaks the build after
+# a registry change, is found on Monday rather than by the next pull request.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    # Monday 05:10 UTC — before the Dependabot batch lands at 06:00 Europe/Warsaw.
+    - cron: "10 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+
+      - run: corepack enable
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: eslint
+        id: lint
+        continue-on-error: true
+        run: yarn lint
+
+      - name: node --test
+        id: test
+        continue-on-error: true
+        # The suite is fully offline: mocks only, no Telnyx or Genesys
+        # resources, no database. It needs no configuration.
+        run: yarn test
+
+      - name: next build
+        id: build
+        continue-on-error: true
+        # Verified to need no env vars: the build compiles routes, it does not
+        # read runtime configuration. Secrets live in PostgreSQL and are
+        # hydrated by server.mjs at startup, never at build time.
+        run: yarn build
+
+      - name: Result
+        if: always()
+        env:
+          LINT: ${{ steps.lint.outcome }}
+          TEST: ${{ steps.test.outcome }}
+          BUILD: ${{ steps.build.outcome }}
+        run: |
+          set -uo pipefail
+          status=0
+          {
+            echo "| step | result |"
+            echo "| --- | --- |"
+            for pair in "yarn lint:$LINT" "yarn test:$TEST" "yarn build:$BUILD"; do
+              name=${pair%:*}
+              outcome=${pair##*:}
+              if [ "$outcome" = "success" ]; then
+                echo "| \`$name\` | passed |"
+              else
+                echo "| \`$name\` | **failed** |"
+                status=1
+              fi
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
