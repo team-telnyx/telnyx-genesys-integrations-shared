@@ -281,7 +281,14 @@ async function main() {
     // Docker context — which excludes .git — cannot tell what it is building,
     // and every image produced here reports itself a development build even
     // when the checkout sits on a release tag.
-    GI_BUILD_INFO: JSON.stringify(createBuildInfo()),
+    //
+    // env: {} for the same reason scripts/build-info.mjs uses it. Left to read
+    // process.env, createBuildInfo returns any GI_BUILD_INFO already exported —
+    // and docs/VERSIONING.md tells operators to export exactly that for a
+    // direct Compose build. A snapshot left over from an earlier build of the
+    // same version would then be stamped on this one, which is how an image
+    // ends up claiming a commit, or a release tag, it was not built from.
+    GI_BUILD_INFO: JSON.stringify(createBuildInfo({ env: {} })),
   };
   const compose = ["compose", "--env-file", deployment.absolute, "-f", "compose.yaml"];
 
@@ -295,7 +302,11 @@ async function main() {
 
   run("docker", ["version"], { env: childEnvironment, dryRun: options.dryRun });
   if (options.buildOnly) {
-    run("docker", ["build", "--tag", options.image, "."], {
+    // --build-arg, not just the environment: Docker does not read GI_BUILD_INFO
+    // from its own environment into the Dockerfile ARG. Compose does that
+    // mapping for the paths below; this direct invocation has to do it itself,
+    // or --build-only ships a development identity from a clean release tag.
+    run("docker", ["build", "--build-arg", `GI_BUILD_INFO=${childEnvironment.GI_BUILD_INFO}`, "--tag", options.image, "."], {
       env: childEnvironment,
       dryRun: options.dryRun,
     });

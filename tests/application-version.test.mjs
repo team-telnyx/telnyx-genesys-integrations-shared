@@ -267,7 +267,10 @@ test("every build path passes the captured identity into the image", () => {
   // Local Compose deployment.
   const localDeploy = read("scripts/deploy.mjs");
   assert.match(localDeploy, /createBuildInfo/);
-  assert.match(localDeploy, /GI_BUILD_INFO: JSON\.stringify\(createBuildInfo\(\)\)/);
+  assert.match(localDeploy, /GI_BUILD_INFO: JSON\.stringify\(createBuildInfo\(\{ env: \{\} \}\)\)/);
+  // The direct --build-only invocation needs the argument, not just the
+  // environment: Docker does not turn an env var into a Dockerfile ARG.
+  assert.match(localDeploy, /"build", "--build-arg", `GI_BUILD_INFO=/);
 
   // Azure and GCP.
   const cloudDeploy = read("deploy/lib/cloud.mjs");
@@ -290,6 +293,35 @@ test("no builder invokes docker without handing it the identity", () => {
     const buildsImages = /docker(",| )\s*(build|\[|compose)/.test(source) || /"build"/.test(source);
     if (!buildsImages) continue;
     assert.match(source, /GI_BUILD_INFO/, `${path} builds an image without GI_BUILD_INFO`);
+  }
+});
+
+test("host-side capture ignores a snapshot left in the environment", () => {
+  // createBuildInfo() reads process.env by default, which is correct inside the
+  // Docker build — that is how the snapshot crosses into the image. It is wrong
+  // on the host: docs/VERSIONING.md tells operators to `export GI_BUILD_INFO`
+  // for a direct build, and a value left over from an earlier build of the same
+  // version would then be stamped onto the next one. An untagged checkout would
+  // claim the old commit and its release tag.
+  const root = fixture();
+  const stale = {
+    version: "1.0.0",
+    commit: "a".repeat(40),
+    tag: "v1.0.0",
+    dirty: false,
+    builtAt: "2020-01-01T00:00:00.000Z",
+  };
+  const inherited = createBuildInfo({ root, env: { GI_BUILD_INFO: JSON.stringify(stale) }, now });
+  assert.equal(inherited.channel, "stable", "the inherited snapshot is what crosses into a Docker build");
+
+  const captured = createBuildInfo({ root, env: {}, now });
+  assert.equal(captured.channel, "development");
+  assert.notEqual(captured.commit, stale.commit);
+  assert.equal(captured.tag, null);
+
+  // Every host-side capture must ask for the empty environment.
+  for (const path of ["scripts/build-info.mjs", "scripts/deploy.mjs", "deploy/lib/cloud.mjs"]) {
+    assert.match(read(path), /createBuildInfo\(\{[^)]*env: \{\}/, `${path} must capture with env: {}`);
   }
 });
 
