@@ -1755,7 +1755,14 @@ setInterval(() => {}, 1000);
       cloudflaredBinary: binary,
       fetchImpl,
       execFileImpl,
+      // timeoutMs stays short on purpose: exhausting it during the public
+      // health check is what drives the second tunnel attempt this test
+      // asserts. urlTimeoutMs covers the unrelated wait for a real spawned
+      // process to print its URL, which on a loaded machine needs far more
+      // than four polls and used to fail the whole start.
       timeoutMs: 2_000,
+      urlTimeoutMs: 30_000,
+      urlTimeoutMs: 30_000,
       onProgress(event) {
         progress.push(event);
       },
@@ -1882,6 +1889,7 @@ setInterval(() => {}, 1000);
       fetchImpl,
       execFileImpl,
       timeoutMs: 3_000,
+      urlTimeoutMs: 30_000,
       tunnelAttempts: 1,
       onProgress(event) {
         progress.push(event);
