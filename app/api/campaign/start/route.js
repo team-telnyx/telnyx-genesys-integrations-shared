@@ -82,10 +82,13 @@ export async function POST(request) {
           let message = template;
           if (contactListColumns) {
             for (const column of contactListColumns) {
-              message = message.replace(
-                new RegExp(`\\{\\{${column}\\}\\}`, 'g'),
-                contact[column] || ''
-              );
+              // Split/join rather than new RegExp(`{{${column}}}`): the column
+              // names arrive in the request body, so a value like `(.*)*` or
+              // `a{1000000}` would have been compiled as a pattern. The
+              // replacement is a plain string here too, so a contact value
+              // containing `$&` or `$1` is inserted literally instead of being
+              // interpreted as a substitution.
+              message = message.split(`{{${column}}}`).join(contact[column] || '');
             }
           }
 
@@ -207,7 +210,10 @@ export async function POST(request) {
       errorDetails: errors.slice(0, 10) // Return first 10 errors
     });
   } catch (error) {
-    console.error(`Error processing ${campaignType} campaign:`, error);
+    // campaignType is passed as an argument, not interpolated into the first
+    // one: console.* treats the first string as a format, so a value of
+    // "%s%s" would consume the error object and rewrite the log line.
+    console.error('Error processing %s campaign:', campaignType, error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

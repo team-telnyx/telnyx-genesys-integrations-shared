@@ -12,9 +12,12 @@ import { telnyxCallControlId } from "@/lib/widgets/voice-call";
 import AudioWaveform from "./AudioWaveform";
 import HandoffTimeline from "./HandoffTimeline";
 import WidgetIcon from "./WidgetIcon";
+import { isRenderableAvatarImage } from "@/lib/widgets/avatar-image";
 
 function Avatar({ spec, color, textColor, size = 36 }) {
-  if (spec?.type === "image") {
+  // A URL that is not an absolute https or blob address falls through to the
+  // initials avatar rather than pointing the visitor's browser at it.
+  if (spec?.type === "image" && isRenderableAvatarImage(spec.value)) {
     // eslint-disable-next-line @next/next/no-img-element
     return <img className="shrink-0 rounded-full object-cover" style={{ width: size, height: size }} src={spec.value} alt="" />;
   }
