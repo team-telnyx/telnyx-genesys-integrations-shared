@@ -59,7 +59,6 @@ Authenticate to your own cloud account:
   (`roles/iam.serviceAccountUser`). These operator roles are not granted by the
   stack. The VM gets only its own secret/artifact access and Cloud SQL access.
 
-AWS also has an optional internal `--fde` switch; see [AWS deployment](aws/README.md#optional-internal-fde-integration).
 
 Cloud provider credentials, Genesys OAuth credentials and Telnyx API keys do
 not belong in deployment JSON or Terraform variables.

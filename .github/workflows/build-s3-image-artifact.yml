@@ -156,10 +156,12 @@ jobs:
               "docker_platform": os.environ["DOCKER_PLATFORM"],
               "artifact": f'{os.environ["META_S3_PREFIX"]}/image.tar.zst',
               "checksum": f'{os.environ["META_S3_PREFIX"]}/image.tar.zst.sha256',
-              # Version and timestamp come from the snapshot the image was
-              # actually built with, so an operator picking an artifact in the
-              # FDE CLI sees the release it contains, not the time this step ran.
-              "version": build["version"],
+              # displayVersion, not version: a build from an untagged ref has
+              # version "1.0.0" and displayVersion "1.0.0-dev". Labelling the
+              # artifact with the bare package version would present a
+              # development build as a release in the FDE CLI's artifact list.
+              # The nested snapshot keeps both.
+              "version": build["displayVersion"],
               "built_at": build["builtAt"],
               "build": build,
           }

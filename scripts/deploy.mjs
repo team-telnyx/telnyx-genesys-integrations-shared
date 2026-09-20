@@ -7,6 +7,7 @@ import { resolve } from "node:path";
 import { createInterface } from "node:readline/promises";
 import { stdin, stdout } from "node:process";
 import dotenv from "dotenv";
+import { createBuildInfo } from "./lib/build-info.mjs";
 import { password, select } from "@inquirer/prompts";
 
 function usage() {
@@ -276,6 +277,11 @@ async function main() {
     ...deployment.values,
     APP_ENV_FILE: deployment.absolute,
     APP_IMAGE: options.image,
+    // compose.yaml passes this through as a build argument. Without it the
+    // Docker context — which excludes .git — cannot tell what it is building,
+    // and every image produced here reports itself a development build even
+    // when the checkout sits on a release tag.
+    GI_BUILD_INFO: JSON.stringify(createBuildInfo()),
   };
   const compose = ["compose", "--env-file", deployment.absolute, "-f", "compose.yaml"];
 

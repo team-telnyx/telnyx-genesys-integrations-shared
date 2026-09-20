@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 
-FROM node:22-bookworm-slim AS dependencies
+FROM node:22.23-bookworm-slim AS dependencies
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN corepack enable
@@ -18,7 +18,7 @@ ENV GI_BUILD_INFO=$GI_BUILD_INFO
 COPY . .
 RUN yarn build
 
-FROM node:22-bookworm-slim AS runtime
+FROM node:22.23-bookworm-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \

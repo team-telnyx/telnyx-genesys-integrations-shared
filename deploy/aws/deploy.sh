@@ -304,10 +304,12 @@ with open(path, "w", encoding="utf-8") as fh:
         "git_sha": git_sha,
         "build_id": build_id,
         "docker_platform": "linux/amd64",
-        # Version and timestamp come from the same snapshot the image was built
-        # with, so the manifest cannot describe a different build than the one
-        # it sits beside.
-        "version": build["version"],
+        # displayVersion, not version: an untagged build has version "1.0.0"
+        # and displayVersion "1.0.0-dev", and the artifact label must not
+        # present a development build as a release. The nested snapshot keeps
+        # both, and the timestamp comes from it too, so the manifest cannot
+        # describe a different build than the one it sits beside.
+        "version": build["displayVersion"],
         "built_at": build["builtAt"],
         "build": build,
     }, fh, indent=2)

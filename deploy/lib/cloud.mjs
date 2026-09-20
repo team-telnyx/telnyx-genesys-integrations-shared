@@ -3,6 +3,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { createReadStream, statSync, mkdtempSync, readFileSync, rmSync, writeFileSync, copyFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve, join } from "node:path";
+import { createBuildInfo, dockerBuildMetadata } from "../../scripts/lib/build-info.mjs";
 
 export function shellQuote(value) {
   return `'${String(value).replaceAll("'", `'"'"'`)}'`;
@@ -200,7 +201,15 @@ export async function cloudDeploy({ root, target, command, config, yes, dryRun, 
     if (!key || Buffer.from(key.trim(), "base64").length !== 32) throw new Error("Runtime secret has no valid encryption key; repair it from backup");
     const release = `${Date.now()}-${randomBytes(5).toString("hex")}`;
     const image = `telnyx-genesys-integrations:${release}`;
-    run("docker", ["build", "--platform", "linux/amd64", "--tag", image, root]);
+    // Same reason as the AWS path and Compose: .git is outside the build
+    // context, so the identity has to be captured here and handed in, or the
+    // Azure and GCP production images always claim to be development builds.
+    const build = createBuildInfo({ root });
+    const docker = dockerBuildMetadata(build);
+    run("docker", ["build", "--platform", "linux/amd64",
+      "--build-arg", `GI_BUILD_INFO=${docker.args.GI_BUILD_INFO}`,
+      ...Object.entries(docker.labels).flatMap(([name, value]) => ["--label", `${name}=${value}`]),
+      "--tag", image, root]);
     run("docker", ["save", "--output", join(work, "image.tar"), image]);
     run("zstd", ["-T0", "-3", "--rm", join(work, "image.tar"), "-o", join(work, "image.tar.zst")]);
     const assets = ["provider.py", "remote-deploy.sh", "run-installer.sh", "compose.yaml"];
