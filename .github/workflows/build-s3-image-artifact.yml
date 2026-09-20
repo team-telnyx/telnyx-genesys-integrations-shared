@@ -1,0 +1,184 @@
+name: Build S3 image artifact
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Git ref to build
+        required: true
+        default: main
+      artifact_bucket:
+        description: Deployment artifact bucket
+        required: true
+      artifact_prefix:
+        description: Prefix inside the artifact bucket
+        required: true
+        default: genesys-integrations
+      aws_region:
+        description: AWS region for the artifact bucket
+        required: true
+        default: us-east-2
+      image_name:
+        description: Docker image name inside the artifact
+        required: true
+        default: telnyx-genesys-integrations
+      platforms:
+        description: Docker platform
+        required: true
+        default: linux/amd64
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: build-s3-image-artifact-${{ github.event.inputs.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      ARTIFACT_BUCKET: ${{ github.event.inputs.artifact_bucket }}
+      ARTIFACT_PREFIX: ${{ github.event.inputs.artifact_prefix }}
+      AWS_REGION: ${{ github.event.inputs.aws_region }}
+      IMAGE_NAME: ${{ github.event.inputs.image_name }}
+      DOCKER_PLATFORM: ${{ github.event.inputs.platforms }}
+
+    steps:
+      - name: Check required configuration
+        shell: bash
+        env:
+          AWS_ROLE_TO_ASSUME: ${{ vars.AWS_ROLE_TO_ASSUME }}
+        run: |
+          set -euo pipefail
+          test -n "$AWS_ROLE_TO_ASSUME" || {
+            echo "Set repository variable AWS_ROLE_TO_ASSUME to the artifact writer role ARN." >&2
+            exit 1
+          }
+
+      - name: Checkout requested ref
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.inputs.ref }}
+          fetch-depth: 0
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ github.event.inputs.aws_region }}
+
+      - name: Install zstd
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y zstd
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+
+      - name: Set artifact metadata
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha=$(git rev-parse HEAD)
+          short_sha=$(git rev-parse --short=12 HEAD)
+          tag="${IMAGE_NAME}:${short_sha}"
+          s3_prefix="s3://${ARTIFACT_BUCKET}/${ARTIFACT_PREFIX}/${short_sha}"
+          # Captured from the checkout, before Docker: the build context
+          # excludes .git, so the image cannot work out its own identity. A ref
+          # that is a release tag yields a stable version here; anything else
+          # yields a development build, which is what it is.
+          build_info=$(node scripts/build-info.mjs)
+          version=$(node -p 'JSON.parse(process.argv[1]).displayVersion' "$build_info")
+          channel=$(node -p 'JSON.parse(process.argv[1]).channel' "$build_info")
+          built_at=$(node -p 'JSON.parse(process.argv[1]).builtAt' "$build_info")
+          {
+            echo "sha=$sha"
+            echo "short_sha=$short_sha"
+            echo "tag=$tag"
+            echo "s3_prefix=$s3_prefix"
+            echo "build_info=$build_info"
+            echo "version=$version"
+            echo "channel=$channel"
+            echo "built_at=$built_at"
+          } >> "$GITHUB_OUTPUT"
+          echo "Building ${version} (${channel}) from ${sha}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Build production image
+        env:
+          GI_BUILD_INFO: ${{ steps.meta.outputs.build_info }}
+          GI_VERSION: ${{ steps.meta.outputs.version }}
+          GI_COMMIT: ${{ steps.meta.outputs.sha }}
+          GI_BUILT_AT: ${{ steps.meta.outputs.built_at }}
+        run: |
+          set -euo pipefail
+          docker build \
+            --platform "$DOCKER_PLATFORM" \
+            --file Dockerfile \
+            --build-arg GI_BUILD_INFO="$GI_BUILD_INFO" \
+            --label org.opencontainers.image.version="$GI_VERSION" \
+            --label org.opencontainers.image.revision="$GI_COMMIT" \
+            --label org.opencontainers.image.created="$GI_BUILT_AT" \
+            --tag "${{ steps.meta.outputs.tag }}" \
+            .
+
+      - name: Package image and manifest
+        shell: bash
+        env:
+          META_SHA: ${{ steps.meta.outputs.sha }}
+          META_SHORT_SHA: ${{ steps.meta.outputs.short_sha }}
+          META_IMAGE: ${{ steps.meta.outputs.tag }}
+          META_S3_PREFIX: ${{ steps.meta.outputs.s3_prefix }}
+          META_BUILD_INFO: ${{ steps.meta.outputs.build_info }}
+        run: |
+          set -euo pipefail
+          mkdir -p artifact
+          docker save "$META_IMAGE" | zstd -T0 -3 -o artifact/image.tar.zst
+          (cd artifact && sha256sum image.tar.zst > image.tar.zst.sha256)
+          python3 - <<'PY'
+          import json
+          import os
+
+          build = json.loads(os.environ["META_BUILD_INFO"])
+          manifest = {
+              "app": "telnyx-genesys-integrations",
+              "git_sha": os.environ["META_SHA"],
+              "short_sha": os.environ["META_SHORT_SHA"],
+              "ref": "${{ github.event.inputs.ref }}",
+              "source_repository": "${{ github.repository }}",
+              "source_run_id": "${{ github.run_id }}",
+              "image": os.environ["META_IMAGE"],
+              "docker_platform": os.environ["DOCKER_PLATFORM"],
+              "artifact": f'{os.environ["META_S3_PREFIX"]}/image.tar.zst',
+              "checksum": f'{os.environ["META_S3_PREFIX"]}/image.tar.zst.sha256',
+              # Version and timestamp come from the snapshot the image was
+              # actually built with, so an operator picking an artifact in the
+              # FDE CLI sees the release it contains, not the time this step ran.
+              "version": build["version"],
+              "built_at": build["builtAt"],
+              "build": build,
+          }
+          with open("artifact/manifest.json", "w", encoding="utf-8") as fh:
+              json.dump(manifest, fh, indent=2)
+              fh.write("\n")
+          PY
+
+      - name: Upload immutable artifact
+        run: |
+          aws s3 cp artifact/image.tar.zst "${{ steps.meta.outputs.s3_prefix }}/image.tar.zst" --only-show-errors
+          aws s3 cp artifact/image.tar.zst.sha256 "${{ steps.meta.outputs.s3_prefix }}/image.tar.zst.sha256" --only-show-errors
+          aws s3 cp artifact/manifest.json "${{ steps.meta.outputs.s3_prefix }}/manifest.json" --content-type application/json --only-show-errors
+
+      - name: Upload manifest summary
+        uses: actions/upload-artifact@v7
+        with:
+          name: genesys-integrations-${{ steps.meta.outputs.short_sha }}
+          path: |
+            artifact/manifest.json
+            artifact/image.tar.zst.sha256
+          retention-days: 7

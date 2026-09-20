@@ -6,6 +6,36 @@ with `npm run deploy -- --target local`, or choose `local` from the target menu.
 
 The application image runs the custom `server.mjs`. On every start it connects to PostgreSQL, obtains the schema advisory lock, applies pending pg-ensure migrations and only then starts accepting HTTP traffic. A separate migration container is neither required nor recommended.
 
+## Example widget configurations
+
+The repository includes three synthetic widget drafts that demonstrate a bright
+messaging experience, a compact dark messaging experience, and a combined voice
+plus messaging experience with transcript and waveform controls. Preview the
+seed operation without connecting to PostgreSQL:
+
+```bash
+npm run db:seed:widget-examples
+```
+
+Apply it to the configured database after reviewing `DATABASE_URL` or the
+`POSTGRES_*` variables:
+
+```bash
+npm run db:seed:widget-examples -- --apply
+```
+
+For `NODE_ENV=production`, the command also requires `--allow-production`.
+Seeding is idempotent: it creates or refreshes the three stable example drafts.
+All examples remain disabled and contain no live Telnyx Assistant or Genesys
+identifiers. Complete those settings, validate the draft, and publish it from
+the Genesys-hosted admin UI before using its embed snippet.
+
+Application startup automatically creates any missing example widgets after
+`pg ensure` completes. Existing examples are left untouched so that restarting
+the application never overwrites changes made in the admin UI. The explicit
+`--apply` command above remains the opt-in way to restore the bundled example
+configuration values.
+
 ## Prerequisites
 
 - Docker Engine with Docker Compose v2.

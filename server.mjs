@@ -2,6 +2,9 @@
 
 import "dotenv/config";
 import { createServer } from "node:http";
+import {
+  assertTelnyxTelephoneTargetNormalization,
+} from "./lib/genesys/telnyx-session-update.js";
 import { closePostgresPool, isPostgresConfigured } from "./lib/postgres.mjs";
 import { ensurePostgresSchema } from "./lib/postgres-schema.mjs";
 import { hydrateRuntimeSecrets } from "./lib/genesys/encrypted-secret-store.mjs";
@@ -14,6 +17,7 @@ import {
   cleanupExpiredWidgetRuntimeData,
   startWidgetRuntimeCleanup,
 } from "./lib/widgets/cleanup.mjs";
+import { seedWidgetExamples } from "./lib/widgets/example-seeds.js";
 
 const development = process.argv.includes("--dev");
 process.env.NODE_ENV = development ? "development" : "production";
@@ -23,6 +27,7 @@ const port = Number(process.env.PORT || 3000);
 if (!Number.isInteger(port) || port < 1 || port > 65_535) {
   throw new Error("PORT must be an integer between 1 and 65535");
 }
+assertTelnyxTelephoneTargetNormalization();
 
 const widgetRuntimeConfigured = isPostgresConfigured();
 let stopWidgetRuntimeCleanup = () => {};
@@ -33,6 +38,12 @@ if (widgetRuntimeConfigured) {
   const runtimeSecrets = await hydrateRuntimeSecrets({ required: false, force: true });
   console.log(
     `[server] Encrypted runtime configuration loaded: ${Object.keys(runtimeSecrets).length} values`
+  );
+  console.log("[server] Ensuring example widget configurations...");
+  const widgetExamples = await seedWidgetExamples({ refreshExisting: false });
+  console.log(
+    `[server] Example widgets ready: ${widgetExamples.total} total ` +
+      `(${widgetExamples.created} created, ${widgetExamples.unchanged} existing)`
   );
   const initialCleanup = await cleanupExpiredWidgetRuntimeData();
   console.log(

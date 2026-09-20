@@ -1,0 +1,117 @@
+name: Publish release
+
+# A pushed `vX.Y.Z` tag is the only trigger. The tag is validated against
+# package.json and against the commit it points at *before* anything is
+# published, and the whole validation gate runs again on that exact commit —
+# a green pull request proves nothing about a tag someone put somewhere else.
+#
+# This workflow publishes a GitHub Release and nothing more. It does not build
+# the deployable image and does not touch a running environment; that happens
+# separately through the S3 artifact workflow and the deployment tooling, under
+# their own authorization.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      # fetch-depth: 0 so the tag object and its target commit are both present;
+      # release.mjs resolves `refs/tags/<tag>^{commit}` against HEAD.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+      - run: corepack enable
+      - run: yarn install --immutable
+
+      - name: Validate release identity and notes
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: node scripts/release.mjs check --tag "$RELEASE_TAG"
+
+      - name: Build identity behaves as documented
+        run: node --test tests/application-version.test.mjs
+
+      - name: The tagged commit reports itself as this release
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          info="$(node scripts/build-info.mjs)"
+          channel="$(node -p 'JSON.parse(process.argv[1]).channel' "$info")"
+          tag="$(node -p 'JSON.parse(process.argv[1]).tag' "$info")"
+          version="$(node -p 'JSON.parse(process.argv[1]).displayVersion' "$info")"
+          # A checkout at the tag must produce a stable (or prerelease) identity.
+          # If it reports "development" the tag does not describe this source,
+          # and publishing it would put a version number on something else.
+          test "$tag" = "$RELEASE_TAG" || { echo "Build identity reports tag '$tag', expected '$RELEASE_TAG'" >&2; exit 1; }
+          case "$channel" in
+            stable|prerelease) ;;
+            *) echo "Build identity reports channel '$channel' at a release tag" >&2; exit 1 ;;
+          esac
+          echo "Publishing $version ($channel)" >> "$GITHUB_STEP_SUMMARY"
+
+      - run: yarn lint
+      - run: yarn test
+      - run: yarn build
+
+  publish:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+
+      - name: Prepare canonical release notes
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: node scripts/release.mjs notes --tag "$RELEASE_TAG" > "$RUNNER_TEMP/release-notes.md"
+
+      - name: Publish immutable release
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const fs = require('node:fs');
+            const tag = context.ref.replace('refs/tags/', '');
+            const prerelease = tag.includes('-');
+            const params = { owner: context.repo.owner, repo: context.repo.repo };
+            // A published release is never rewritten: re-running this workflow
+            // must not silently replace notes people have already read. Fix a
+            // released problem with a new version instead.
+            try {
+              const existing = await github.rest.repos.getReleaseByTag({ ...params, tag });
+              if (existing.data.draft) throw new Error('A draft already uses this release tag; resolve it before retrying.');
+              core.info(`Release already exists; leaving it unchanged: ${existing.data.html_url}`);
+            } catch (error) {
+              if (error.status !== 404) throw error;
+              const release = await github.rest.repos.createRelease({
+                ...params,
+                tag_name: tag,
+                name: `Telnyx Genesys Integrations ${tag}`,
+                body: fs.readFileSync(`${process.env.RUNNER_TEMP}/release-notes.md`, 'utf8'),
+                draft: false,
+                prerelease,
+                make_latest: prerelease ? 'false' : 'legacy',
+              });
+              core.info(`Published ${release.data.html_url}`);
+            }

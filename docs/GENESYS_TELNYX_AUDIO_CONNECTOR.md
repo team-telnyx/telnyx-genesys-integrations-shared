@@ -222,8 +222,10 @@ system variable and treats it as voice when processing handoff.
 The generated assistant defines this context with empty default values. Its
 instructions may use caller-facing ANI, display-name, DNIS, language,
 `first_name`, and `last_name` only when they are non-empty, and prohibit
-speaking internal Genesys identifiers. Configure actual customer context in Architect inputs; it must arrive through
-WebSocket `session.update` and has no assistant fallback. This makes missing bridge data immediately visible.
+speaking internal Genesys identifiers. The literal `first_name="John"` and
+`last_name="Wick"` examples exist only in the generated Architect Inputs and
+must arrive through WebSocket `session.update`; they are not assistant
+fallbacks. This makes missing bridge data immediately visible.
 
 Every managed assistant also has a uniquely named shared Telnyx Hangup tool.
 The assistant must give a brief farewell and invoke Hangup when the caller asks
@@ -241,10 +243,12 @@ lower-case `snake_case`; `telnyx_` is reserved and rejected. Object values,
 oversized values, duplicate protected names, and oversized frames are rejected
 before any audio is sent.
 
-New managed flows include empty `telnyxVar_first_name` and
-`telnyxVar_last_name` inputs. Configure them with actual Flow variables,
-participant data, or Data Action output. They arrive in Telnyx as `first_name`
-and `last_name`.
+New managed flows include two visible literal examples in the Call Audio
+Connector action: `telnyxVar_first_name="John"` and
+`telnyxVar_last_name="Wick"`. They arrive in Telnyx as `first_name` and
+`last_name`. In Architect, edit the action's **Inputs** collection to change or
+remove them, or replace the literal strings with any valid Architect string
+expression such as a Flow variable, participant data, or Data Action output.
 
 Never pass API keys, OAuth tokens, passwords, payment data, or other secrets as
 dynamic variables. Values can influence prompts and webhook tools and may
@@ -434,7 +438,7 @@ receives the handoff so that transcript, insight, webhook-log, and session-cost
 records created asynchronously become visible without a database or SSE
 dependency.
 
-In the widget UI, the
+Its UI is the same component implementation used by the demo portal: the
 Conversation view renders role-colored message bubbles and tool calls, the
 header renders the generated summary plus intent and sentiment badges, and the
 remaining tabs use the same insight, metadata, dynamic-variable, and detailed

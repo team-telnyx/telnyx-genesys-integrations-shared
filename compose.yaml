@@ -5,6 +5,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      # Export the snapshot before building so the image knows what it is:
+      #   export GI_BUILD_INFO="$(node scripts/build-info.mjs)"
+      # Left empty, the image is labelled a development build, which is what an
+      # unidentified build is.
+      args:
+        GI_BUILD_INFO: ${GI_BUILD_INFO:-}
     image: ${APP_IMAGE:-telnyx-genesys-integrations:local}
     init: true
     restart: unless-stopped
@@ -42,6 +48,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        GI_BUILD_INFO: ${GI_BUILD_INFO:-}
     image: ${APP_IMAGE:-telnyx-genesys-integrations:local}
     profiles: ["installer"]
     init: true
