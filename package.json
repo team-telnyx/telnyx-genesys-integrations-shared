@@ -10,7 +10,6 @@
     "start": "node server.mjs",
     "db:ensure": "node scripts/ensure-pg.mjs",
     "db:seed:widget-examples": "node scripts/seed-widget-examples.mjs",
-    "db:seed:leap-widgets": "node scripts/seed-leap-conference-widgets.mjs",
     "deploy": "node -- deploy/cli.mjs",
     "lint": "eslint",
     "test": "node --test tests/*.test.mjs",

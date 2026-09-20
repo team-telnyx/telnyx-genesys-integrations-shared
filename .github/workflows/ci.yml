@@ -20,8 +20,12 @@ on:
   push:
     branches: [main]
   schedule:
-    # Monday 05:10 UTC — before the Dependabot batch lands at 06:00 Europe/Warsaw.
-    - cron: "10 5 * * 1"
+    # Monday 03:00 UTC. Europe/Warsaw is UTC+1 in winter and UTC+2 in summer, so
+    # the 06:00 Dependabot batch lands at 05:00 or 04:00 UTC. The first version
+    # of this cron ran at 05:10 and was therefore *after* the batch in both
+    # cases — a broken main would have surfaced as failures on the newly opened
+    # dependency pull requests instead of being known beforehand.
+    - cron: "0 3 * * 1"
   workflow_dispatch:
 
 permissions:

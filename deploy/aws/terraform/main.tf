@@ -444,7 +444,7 @@ resource "aws_instance" "app" {
     ignore_changes = [ami, user_data]
   }
 
-  tags = merge(local.common_tags, { Name = "${local.name_prefix}-app", Owner = var.owner_email }, local.fde_tags)
+  tags = merge(local.common_tags, { Name = "${local.name_prefix}-app", Owner = var.owner_email })
 
 }
 

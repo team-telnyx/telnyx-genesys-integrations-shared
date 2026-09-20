@@ -237,8 +237,14 @@ test("invalid dates, duplicate versions, and missing notes are rejected", () => 
 test("every build path passes the captured identity into the image", () => {
   // The build context excludes .git, so an image that is not handed a snapshot
   // can only call itself a development build. Each of these is a place a
-  // deployable image is produced; leaving one out would ship a release that
-  // reports itself as unreleased.
+  // deployable image is produced; leaving one out ships a release that reports
+  // itself as unreleased.
+  //
+  // The first version of this test checked the Dockerfile, Compose and the two
+  // AWS paths and declared the job done — while scripts/deploy.mjs (local) and
+  // deploy/lib/cloud.mjs (Azure, GCP) built images with no snapshot at all. A
+  // test that enumerates "every path" has to enumerate every path, so the list
+  // below is checked against the builders actually present in the tree.
   const dockerfile = read("Dockerfile");
   assert.match(dockerfile, /ARG GI_BUILD_INFO/);
   assert.match(dockerfile, /ENV GI_BUILD_INFO=\$GI_BUILD_INFO/);
@@ -251,12 +257,51 @@ test("every build path passes the captured identity into the image", () => {
   assert.match(workflow, /--build-arg GI_BUILD_INFO=/);
   assert.match(workflow, /org\.opencontainers\.image\.version/);
   // The FDE CLI reads the manifest to label an artifact; without the version it
-  // can only show a commit.
-  assert.match(workflow, /"version": build\["version"\]/);
+  // can only show a commit. Asserted as displayVersion by its own test below.
+  assert.match(workflow, /"version": build\["displayVersion"\]/);
 
   const awsDeploy = read("deploy/aws/deploy.sh");
   assert.match(awsDeploy, /node scripts\/build-info\.mjs/);
   assert.match(awsDeploy, /--build-arg GI_BUILD_INFO=/);
+
+  // Local Compose deployment.
+  const localDeploy = read("scripts/deploy.mjs");
+  assert.match(localDeploy, /createBuildInfo/);
+  assert.match(localDeploy, /GI_BUILD_INFO: JSON\.stringify\(createBuildInfo\(\)\)/);
+
+  // Azure and GCP.
+  const cloudDeploy = read("deploy/lib/cloud.mjs");
+  assert.match(cloudDeploy, /createBuildInfo/);
+  assert.match(cloudDeploy, /--build-arg", `GI_BUILD_INFO=/);
+});
+
+test("no builder invokes docker without handing it the identity", () => {
+  // The enumeration above only proves the paths it names. This finds the
+  // builders instead: every `docker build` and every Compose build in the tree
+  // has to be accompanied by the snapshot, so a new deployment target cannot
+  // quietly ship images that call themselves development builds.
+  const builders = [
+    "deploy/aws/deploy.sh",
+    "deploy/lib/cloud.mjs",
+    "scripts/deploy.mjs",
+  ];
+  for (const path of builders) {
+    const source = read(path);
+    const buildsImages = /docker(",| )\s*(build|\[|compose)/.test(source) || /"build"/.test(source);
+    if (!buildsImages) continue;
+    assert.match(source, /GI_BUILD_INFO/, `${path} builds an image without GI_BUILD_INFO`);
+  }
+});
+
+test("artifact manifests label the build with displayVersion, not the bare package version", () => {
+  // An untagged build has version "1.0.0" and displayVersion "1.0.0-dev".
+  // Writing the former into the manifest's top-level label presents a
+  // development build as a release wherever an artifact is listed.
+  for (const path of [".github/workflows/build-s3-image-artifact.yml", "deploy/aws/deploy.sh"]) {
+    const source = read(path);
+    assert.match(source, /"version": build\["displayVersion"\]/, path);
+    assert.doesNotMatch(source, /"version": build\["version"\]/, path);
+  }
 });
 
 test("release tags follow the pattern the deployment tooling discovers", () => {

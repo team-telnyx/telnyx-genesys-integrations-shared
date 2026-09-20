@@ -86,6 +86,12 @@ updates:
     groups:
       github-actions:
         patterns: ["*"]
+        # Without this the group has no update-type restriction, so a new action
+        # major is batched with everything else — which is what happened on the
+        # first run: checkout v4->v7 and configure-aws-credentials v4->v6 arrived
+        # inside one "3 updates" pull request, against the documented rule that
+        # majors are reviewed one at a time.
+        update-types: ["minor", "patch"]
 
   # ---------------------------------------------------------------------------
   # The production image base. Dependabot alerts never cover a Dockerfile FROM,
@@ -99,8 +105,12 @@ updates:
   # .github/workflows/ci.yml and in @types/node at the same time, or CI stops
   # testing what the image actually runs.
   #
-  # Minor and patch bumps still flow, which is the point: those carry the
-  # bookworm-slim distro patches for the Node line already in use.
+  # For minor and patch bumps to exist at all, the Dockerfile has to pin
+  # something more precise than a major: against the bare `22-bookworm-slim`
+  # tag the only update Dependabot could ever compute was a major, so ignoring
+  # majors left this ecosystem with nothing to raise. It now pins
+  # `22.23-bookworm-slim`, which Dependabot can advance to 22.24 and which still
+  # floats across patch releases of the line it names.
   # ---------------------------------------------------------------------------
   - package-ecosystem: docker
     directory: "/"
