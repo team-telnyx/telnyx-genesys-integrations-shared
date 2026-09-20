@@ -6,6 +6,7 @@ import {
   isInvalidGenesysTokenError,
   readGenesysAuthCookie,
 } from '../../../../../../lib/genesys/auth-cookies.mjs';
+import { assertGenesysApiUrl } from '../../../../../../lib/genesys/api-origin.mjs';
 
 // GET - Fetch contacts from export file URL
 export async function GET(request, { params }) {
@@ -23,8 +24,19 @@ export async function GET(request, { params }) {
     return NextResponse.json({ error: 'Export URL required' }, { status: 400 });
   }
 
+  // The token below travels in the Authorization header, so the destination
+  // cannot be whatever the caller asked for. Without this, a signed-in user
+  // loading an attacker's page would have their Genesys token delivered to a
+  // host of the attacker's choosing.
+  let exportUrl;
   try {
-    const response = await fetch(url, {
+    exportUrl = assertGenesysApiUrl(url);
+  } catch (error) {
+    return NextResponse.json({ error: `Export URL rejected: ${error.message}` }, { status: 400 });
+  }
+
+  try {
+    const response = await fetch(exportUrl, {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
       }

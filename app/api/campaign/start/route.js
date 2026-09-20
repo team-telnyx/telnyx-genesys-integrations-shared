@@ -6,6 +6,7 @@ import {
   isInvalidGenesysTokenError,
   readGenesysAuthCookie,
 } from '../../../../lib/genesys/auth-cookies.mjs';
+import { assertGenesysApiUrl } from '../../../../lib/genesys/api-origin.mjs';
 
 export async function POST(request) {
   const cookieStore = await cookies();
@@ -30,6 +31,15 @@ export async function POST(request) {
   }
 
   const environment = process.env.GC_ENVIRONMENT || 'usw2.pure.cloud';
+
+  // Same reason as the contact-list export route: this URI arrives in the
+  // request body and is fetched with the caller's Genesys token attached.
+  let contactListUrl;
+  try {
+    contactListUrl = assertGenesysApiUrl(contactListUri);
+  } catch (error) {
+    return NextResponse.json({ error: `contactListUri rejected: ${error.message}` }, { status: 400 });
+  }
   const telnyxApiKey = process.env.TELNYX_API_KEY;
   const messageDeploymentId = process.env.GC_MESSAGE_DEPLOYMENT_ID;
 
@@ -37,7 +47,7 @@ export async function POST(request) {
     // Fetch the contact list CSV file
     console.log(`Starting ${campaignType} campaign for contact list ID: ${contactListId}`);
     
-    const csvResponse = await fetch(contactListUri, {
+    const csvResponse = await fetch(contactListUrl, {
       headers: {
         'Authorization': `Bearer ${accessToken}`
       }
