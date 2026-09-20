@@ -12,6 +12,7 @@ import HandoffTimeline from "./HandoffTimeline";
 import VoiceWidgetRuntime from "./VoiceWidgetRuntime";
 import { requestFreshWidgetBootstrap } from "@/lib/widgets/bootstrap-client";
 import WidgetIcon from "./WidgetIcon";
+import { isRenderableAvatarImage } from "@/lib/widgets/avatar-image";
 
 const QUICK_EMOJI = ["😀", "😊", "👍", "❤️", "🎉", "🙏", "👋", "🤔"];
 
@@ -34,11 +35,14 @@ function Avatar({ spec, fallbackSpec = null, color, textColor, size = 36 }) {
   const [failedImageUrl, setFailedImageUrl] = useState(null);
   const imageFailed = spec?.type === "image" && failedImageUrl === spec.value;
   const style = { backgroundColor: color, color: textColor, width: size, height: size };
-  if (spec?.type === "image" && !imageFailed) {
+  // An unrenderable URL is treated exactly like an image that failed to load:
+  // fall through to the initials avatar below.
+  const renderable = spec?.type === "image" && isRenderableAvatarImage(spec.value);
+  if (renderable && !imageFailed) {
     // eslint-disable-next-line @next/next/no-img-element
     return <img className="shrink-0 rounded-full object-cover" style={{ width: size, height: size }} src={spec.value} alt="" onError={() => setFailedImageUrl(spec.value)} />;
   }
-  const visibleSpec = imageFailed && fallbackSpec ? fallbackSpec : spec;
+  const visibleSpec = (imageFailed || spec?.type === "image") && fallbackSpec ? fallbackSpec : spec;
   return (
     <span className="grid shrink-0 place-items-center rounded-full text-xs font-bold" style={style}>
       {visibleSpec?.type === "initials" ? visibleSpec.value.slice(0, 3) : <WidgetIcon name={visibleSpec?.value} fallback="user" size={Math.max(14, Math.round(size * 0.48))} />}
