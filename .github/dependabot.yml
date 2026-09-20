@@ -41,7 +41,11 @@ updates:
       day: monday
       time: "06:00"
       timezone: Europe/Warsaw
-    open-pull-requests-limit: 5
+    # 0 in this published copy. It is a mirror: its tree is replaced by the
+    # next sync, so a version-update pull request opened here could never be
+    # merged. Those belong in the source repository. GitHub exempts SECURITY
+    # updates from this limit, so grouped advisory pull requests still arrive.
+    open-pull-requests-limit: 0
     cooldown:
       default-days: 7
     labels: ["dependencies"]
@@ -69,7 +73,11 @@ updates:
     directory: "/"
     schedule:
       interval: monthly
-    open-pull-requests-limit: 2
+    # 0 in this published copy. It is a mirror: its tree is replaced by the
+    # next sync, so a version-update pull request opened here could never be
+    # merged. Those belong in the source repository. GitHub exempts SECURITY
+    # updates from this limit, so grouped advisory pull requests still arrive.
+    open-pull-requests-limit: 0
     cooldown:
       default-days: 7
     labels: ["dependencies", "ci"]
@@ -98,7 +106,11 @@ updates:
     directory: "/"
     schedule:
       interval: monthly
-    open-pull-requests-limit: 1
+    # 0 in this published copy. It is a mirror: its tree is replaced by the
+    # next sync, so a version-update pull request opened here could never be
+    # merged. Those belong in the source repository. GitHub exempts SECURITY
+    # updates from this limit, so grouped advisory pull requests still arrive.
+    open-pull-requests-limit: 0
     cooldown:
       default-days: 7
     labels: ["dependencies", "docker"]
