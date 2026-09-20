@@ -204,7 +204,10 @@ export async function cloudDeploy({ root, target, command, config, yes, dryRun, 
     // Same reason as the AWS path and Compose: .git is outside the build
     // context, so the identity has to be captured here and handed in, or the
     // Azure and GCP production images always claim to be development builds.
-    const build = createBuildInfo({ root });
+    // env: {} — see scripts/build-info.mjs. Reading process.env here would let
+    // a GI_BUILD_INFO exported for an earlier build stamp its commit, and
+    // possibly its release tag, onto this Azure or GCP image.
+    const build = createBuildInfo({ root, env: {} });
     const docker = dockerBuildMetadata(build);
     run("docker", ["build", "--platform", "linux/amd64",
       "--build-arg", `GI_BUILD_INFO=${docker.args.GI_BUILD_INFO}`,
