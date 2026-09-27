@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { gitOutput, packageVersion, RELEASE_VERSION } from "./lib/build-info.mjs";
 
-const REPOSITORY = "team-telnyx/telnyx-genesys-integrations";
+const REPOSITORY = "team-telnyx/telnyx-genesys-integrations-shared";
 const BADGE_START = "<!-- app-version:start -->";
 const BADGE_END = "<!-- app-version:end -->";
 

@@ -150,7 +150,7 @@ test("preview accepts a widget-scoped persisted screenshot URL without exposing 
   const config = structuredClone(DEFAULT_WIDGET_CONFIG);
   const background = config.preview.backgrounds["desktop-responsive__landscape"];
   background.backgroundMode = "image";
-  background.backgroundImageUrl = "/api/admin/widgets/2ae5c8cb-5713-4bce-8f31-c393525f5146/preview-background?variant=desktop-responsive__landscape&v=1723896000000";
+  background.backgroundImageUrl = "/api/admin/widgets/30000000-0000-4000-8000-000000000001/preview-background?variant=desktop-responsive__landscape&v=1723896000000";
   const parsed = parseWidgetConfig(config);
   assert.equal(
     parsed.preview.backgrounds["desktop-responsive__landscape"].backgroundImageUrl,

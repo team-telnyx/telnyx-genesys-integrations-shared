@@ -1,3 +1,7 @@
+import { normalizeTelnyxPublicKey } from "@/lib/telnyx/webhooks.mjs";
+import { ensurePublishedWidgetVideo, resolveVideoAccessGroups } from "@/lib/genesys/video-installer.mjs";
+import { configureVideoPanelQueue, panelSettingsApi, preserveVideoPanelDefaultBeforeUpdate } from "@/lib/genesys/video-panel-settings.mjs";
+import { withVideoPanelState } from "@/lib/genesys/video-panel-store.mjs";
 import { NextResponse } from "next/server";
 import { requireSameOrigin, requireWidgetAdmin } from "@/lib/genesys/admin-auth";
 import { loadAdminConsoleGenesysContext } from "@/lib/genesys/admin-console-installer.mjs";
@@ -99,6 +103,12 @@ async function executeWidgetPublish({ id, auth, body, onProgress = () => {} }) {
 
     const messagingEnabled = publishConfig.channels.messaging.enabled;
     const voiceEnabled = publishConfig.channels.voice.enabled;
+    const videoEnabled = publishConfig.channels.video.enabled;
+    const videoAutoOpen = publishConfig.channels.video.genesys.autoOpen;
+    const hasVideoPanelRequest = typeof videoAutoOpen === "boolean";
+    if (videoAutoOpen === true && !videoEnabled) throw publishHttpError("Enable the video channel before enabling automatic panel opening", 400);
+    const videoPanelToDisable = !videoEnabled && publishConfig.channels.video.genesys.widgetIntegrationId;
+    if (videoEnabled) normalizeTelnyxPublicKey(process.env.TELNYX_PUBLIC_KEY);
     const publicBaseUrl = String(
       infrastructure?.publicBaseUrl ||
       current.infrastructureConfig?.endpoint ||
@@ -123,9 +133,12 @@ async function executeWidgetPublish({ id, auth, body, onProgress = () => {} }) {
       { force: forceInfrastructure }
     );
     const synchronizeInfrastructure = Boolean(infrastructureSyncReason);
+    const previousVideo = current.published?.config?.channels?.video;
+    const legacyPanelWillChange = synchronizeInfrastructure && previousVideo?.genesys?.widgetIntegrationId
+      && (videoPanelToDisable || previousVideo.genesys.queueId !== publishConfig.channels.video.genesys.queueId);
 
     let context = null;
-    if (synchronizeInfrastructure && (messagingEnabled || voiceEnabled)) {
+    if (hasVideoPanelRequest || legacyPanelWillChange || (synchronizeInfrastructure && (messagingEnabled || voiceEnabled || videoEnabled || videoPanelToDisable))) {
       if (!/^https:\/\//i.test(publicBaseUrl)) {
         throw new Error("GC_PUBLIC_BASE_URL must be a public HTTPS origin");
       }
@@ -138,6 +151,9 @@ async function executeWidgetPublish({ id, auth, body, onProgress = () => {} }) {
         throw publishHttpError("Genesys organization mismatch", 403);
       }
     }
+    // Detect permission/API failures before provisioning other channel resources.
+    const videoPanelApi = hasVideoPanelRequest || legacyPanelWillChange ? panelSettingsApi(context) : null;
+    if (videoPanelApi) await videoPanelApi.get();
 
     if (synchronizeInfrastructure && voiceEnabled) {
       await reconcilePublishedWidgetAssistantToolConflicts({
@@ -177,8 +193,24 @@ async function executeWidgetPublish({ id, auth, body, onProgress = () => {} }) {
     // Genesys or Telnyx resources. This turns a misleading infrastructure
     // error into the exact missing widget setting and avoids partial writes.
     assertPublishableWidgetConfig(publishConfig);
-    const saved = await updateWidgetDraft({ id, config: publishConfig, actor: auth.actor });
+    let saved = await updateWidgetDraft({ id, config: publishConfig, actor: auth.actor });
     if (!saved) throw publishHttpError("Widget not found", 404);
+
+    let videoPanelSettings = null;
+    if (videoPanelApi) {
+      const groups = await resolveVideoAccessGroups({ context, infrastructure });
+      if (hasVideoPanelRequest) await context.routingApi.getRoutingQueue(publishConfig.channels.video.genesys.queueId);
+      progress("running", "Configure automatic video panel opening", publishConfig.channels.video.genesys.queueName);
+      videoPanelSettings = await withVideoPanelState(auth.actor.organizationId, stored => {
+        const options = { ...stored, settingsApi: videoPanelApi, integrationsApi: context.integrationsApi, baseUrl: publicBaseUrl, groups };
+        return hasVideoPanelRequest
+          ? configureVideoPanelQueue({ ...options, queueId: publishConfig.channels.video.genesys.queueId, enabled: videoAutoOpen })
+          : preserveVideoPanelDefaultBeforeUpdate({ ...options, panelId: previousVideo.genesys.widgetIntegrationId });
+      });
+      progress("success", "Configure automatic video panel opening", hasVideoPanelRequest
+        ? videoPanelSettings.enabled ? "Enabled for the selected queue" : "Disabled for the selected queue"
+        : "Existing video queue settings preserved");
+    }
 
     let genesysResources = null;
     if (synchronizeInfrastructure && messagingEnabled) {
@@ -200,6 +232,28 @@ async function executeWidgetPublish({ id, auth, body, onProgress = () => {} }) {
         defaultQueue: messagingDefaultQueue,
       };
     }
+    if (synchronizeInfrastructure && videoPanelToDisable) {
+      await context.integrationsApi.patchIntegration(videoPanelToDisable, { body: { intendedState: "DISABLED" } });
+    }
+    let videoResources = null;
+    if (synchronizeInfrastructure && videoEnabled) {
+      const videoGroups = await resolveVideoAccessGroups({ context, infrastructure });
+      videoResources = await ensurePublishedWidgetVideo({
+        context, widget: current, config: publishConfig, baseUrl: publicBaseUrl,
+        groups: videoGroups, secret: process.env.GC_OPEN_MESSAGING_SECRET, onProgress,
+      });
+      publishConfig.channels.video.genesys = { ...videoResources.genesys, autoOpen: videoAutoOpen };
+      saved = await updateWidgetDraft({ id, config: publishConfig, actor: auth.actor });
+      await registerManagedResourceBatch({
+        organizationId: auth.actor.organizationId,
+        aggregate: { kind: "messaging_profile", name: `widget:${current.id}:video`, desiredConfig: { widgetId: current.id, queueId: videoResources.genesys.queueId } },
+        resources: [
+          { key: "video_open_messaging", provider: "genesys", resourceType: "open_messaging_integration", remoteId: videoResources.integration.id, displayName: videoResources.integration.name, logicalKey: "widget_video_messaging", scopeType: "widget", scopeId: current.id },
+          { key: "video_flow", provider: "genesys", resourceType: "architect_inbound_flow", remoteId: videoResources.flow.id, displayName: videoResources.flow.name, logicalKey: "widget_video_flow", scopeType: "widget", scopeId: current.id },
+          { key: "video_panel", provider: "genesys", resourceType: "client_application", remoteId: videoResources.panel.id, displayName: videoResources.panel.name, logicalKey: "widget_video_panel", scopeType: "widget", scopeId: current.id },
+        ],
+      });
+    }
     const voiceRouting = synchronizeInfrastructure && voiceEnabled
       ? await ensurePublishedWidgetVoiceRouting({
           organizationId: auth.actor.organizationId,
@@ -212,7 +266,7 @@ async function executeWidgetPublish({ id, auth, body, onProgress = () => {} }) {
           onProgress,
         })
       : null;
-    const telnyxResources = synchronizeInfrastructure
+    const telnyxResources = synchronizeInfrastructure && (messagingEnabled || voiceEnabled)
       ? await ensurePublishedWidgetAssistantResources({
           organizationId: auth.actor.organizationId,
           widget: current,
@@ -297,6 +351,10 @@ async function executeWidgetPublish({ id, auth, body, onProgress = () => {} }) {
         ],
       });
     }
+    if (hasVideoPanelRequest) {
+      publishConfig.channels.video.genesys.autoOpen = null;
+      saved = await updateWidgetDraft({ id, config: publishConfig, actor: auth.actor });
+    }
     // Mark the fingerprint only after every created remote resource has been
     // recorded in PostgreSQL. A registry failure therefore leaves the next
     // publish on the safe reconciliation path instead of incorrectly taking
@@ -333,6 +391,8 @@ async function executeWidgetPublish({ id, auth, body, onProgress = () => {} }) {
         transferToolId: telnyxResources?.transfer?.tool?.id || null,
         voiceQueueToolId: telnyxResources?.transfer?.queueTool?.id || null,
       },
+      videoResources: videoResources ? { panel: videoResources.panel, flow: videoResources.flow } : null,
+      videoPanelSettings,
       publication: {
         infrastructureSynchronized: synchronizeInfrastructure,
         infrastructureSyncReason,

@@ -24,7 +24,7 @@ export async function PUT(request, { params }) {
       message: issue.message,
     }));
     return NextResponse.json(
-      { error: "Invalid widget configuration", issues: issues || undefined },
+      { error: error.status === 400 ? error.message : "Invalid widget configuration", issues: issues || undefined },
       { status: 400 }
     );
   }

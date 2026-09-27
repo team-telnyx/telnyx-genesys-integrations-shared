@@ -1,6 +1,6 @@
 {
   "name": "telnyx-genesys-integrations",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "license": "MIT",
   "private": true,
   "type": "module",
@@ -39,6 +39,7 @@
     "@radix-ui/react-toggle-group": "^1.1.19",
     "@tabler/icons-react": "^3.40.0",
     "@telnyx/ai-agent-lib": "^0.6.5",
+    "@telnyx/video": "1.0.2",
     "chalk": "^6.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

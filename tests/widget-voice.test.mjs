@@ -83,7 +83,7 @@ test("widget studio preview reacts to surface and theme changes without clipping
   assert.match(frame, /previewWidget \? "h-full min-h-0" : "h-dvh min-h-\[420px\]"/);
   assert.match(frame, /aria-label=\{ui\.aria\.attachFile\}/);
   assert.match(frame, /aria-label=\{ui\.aria\.emoji\}/);
-  assert.match(studio, /key=\{`\$\{surface\}-\$\{previewScenario \|\| "default"\}`\}/);
+  assert.match(studio, /key=\{`\$\{surface\}-\$\{surface === "video" \? videoScenario : previewScenario \|\| "default"\}`\}/);
   assert.doesNotMatch(studio, /inset-x-0 top-0 h-12 border-b/);
 });
 
@@ -94,7 +94,7 @@ test("voice sessions are short-lived server records with monotonic terminal stat
     readFile(sessionsPath, "utf8"),
     readFile(schemaPath, "utf8"),
   ]);
-  assert.match(route, /z\.enum\(\["messaging", "voice"\]\)/);
+  assert.match(route, /z\.enum\(\["messaging", "voice", "video"\]\)/);
   assert.match(route, /activateVoiceSession/);
   assert.match(stateRoute, /z\.enum\(\["active", "completed", "failed"\]\)/);
   assert.match(sessions, /status IN \('completed', 'failed'\)/);

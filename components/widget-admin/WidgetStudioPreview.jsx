@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, EyeOff, GitBranch, Monitor, Smartphone, Tablet, Timer } from "lucide-react";
 import WidgetFrame from "@/components/widget/WidgetFrame";
 import WidgetIcon from "@/components/widget/WidgetIcon";
-import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   getPreviewDevice,
   PREVIEW_DEVICES,
@@ -217,6 +217,10 @@ function HomePreview({ config, onSurfaceChange, edgeToEdge = false, edgeInsets =
             <span><strong className="block">{config.content.callLabel}</strong><small className="opacity-65">{config.content.voiceSubtitle}</small></span>
           </button>
         )}
+        {config.channels.video.enabled && <button type="button" onClick={() => onSurfaceChange("video")} className="flex w-full items-center gap-3 border p-4 text-left" style={{ borderColor: colors.border, borderRadius: config.theme.shape.buttonRadius, backgroundColor: colors.surfaceMuted }}>
+          <span className="grid size-10 place-items-center rounded-full" style={{ backgroundColor: colors.primary, color: colors.onPrimary }}><WidgetIcon name="video" size={19} /></span>
+          <span><strong className="block">{config.content.videoLabel}</strong><small className="opacity-65">{config.content.videoSubtitle}</small></span>
+        </button>}
         {config.callbacks.enabled && (
           <button
             type="button"
@@ -234,12 +238,13 @@ function HomePreview({ config, onSurfaceChange, edgeToEdge = false, edgeInsets =
 }
 
 function availablePreviewSurfaces(config) {
-  const choices = Number(config.channels.messaging.enabled) + Number(config.channels.voice.enabled) + Number(config.callbacks.enabled);
+  const choices = Number(config.channels.messaging.enabled) + Number(config.channels.voice.enabled) + Number(config.channels.video.enabled) + Number(config.callbacks.enabled);
   return [
     "launcher",
     ...(choices > 1 ? ["home"] : []),
     ...(config.channels.messaging.enabled ? ["chat"] : []),
     ...(config.channels.voice.enabled ? ["voice"] : []),
+    ...(config.channels.video.enabled ? ["video"] : []),
     ...(config.callbacks.enabled ? ["callbacks"] : []),
   ];
 }
@@ -461,6 +466,7 @@ export default function WidgetStudioPreview({
   simulationRun = 0,
 }) {
   const [completedSimulationRun, setCompletedSimulationRun] = useState(0);
+  const [videoScenario, setVideoScenario] = useState("connected");
   useEffect(() => {
     if (!simulationRun || !decisionResult?.visible || decisionResult.launcherDelaySeconds <= 0) return undefined;
     const timer = window.setTimeout(
@@ -488,8 +494,10 @@ export default function WidgetStudioPreview({
   const safeArea = previewSafeArea(device, viewport.orientation);
   const availableWidth = Math.max(240, viewport.width - activeOffsetX - safeArea.left - safeArea.right - 16);
   const availableHeight = Math.max(280, viewport.height - activeOffsetY - safeArea.top - safeArea.bottom - 16);
-  const panelWidth = device.type === "desktop" ? config.dimensions.panelWidth : fullscreenPhone ? viewport.width : Math.min(config.dimensions.panelWidth, availableWidth);
-  const panelHeight = device.type === "desktop" ? config.dimensions.panelHeight : fullscreenPhone ? viewport.height : Math.min(config.dimensions.panelHeight, availableHeight);
+  const panelDimensions = surface === "video" && config.channels.video.sizing.mode === "video"
+    ? { panelWidth: config.channels.video.sizing.width, panelHeight: config.channels.video.sizing.height } : config.dimensions;
+  const panelWidth = device.type === "desktop" ? panelDimensions.panelWidth : fullscreenPhone ? viewport.width : Math.min(panelDimensions.panelWidth, availableWidth);
+  const panelHeight = device.type === "desktop" ? panelDimensions.panelHeight : fullscreenPhone ? viewport.height : Math.min(panelDimensions.panelHeight, availableHeight);
   const preview = getPreviewBackground(config, device.id, viewport.orientation);
   const imageState = usePreviewImageState(preview.backgroundMode === "image" ? preview.backgroundImageUrl : "");
   const background = resolvedPreviewBackground(preview, imageState);
@@ -499,8 +507,8 @@ export default function WidgetStudioPreview({
   const homeIndicatorColor = fullscreenPhone
     ? readableForeground(config.theme.colors.footerBackground)
     : background.useImage ? "#ffffff" : "#111827";
-  const choiceCount = Number(config.channels.messaging.enabled) + Number(config.channels.voice.enabled) + Number(config.callbacks.enabled);
-  const openDefaultSurface = () => onSurfaceChange(choiceCount > 1 ? "home" : config.callbacks.enabled ? "callbacks" : config.channels.voice.enabled ? "voice" : "chat");
+  const choiceCount = Number(config.channels.messaging.enabled) + Number(config.channels.voice.enabled) + Number(config.channels.video.enabled) + Number(config.callbacks.enabled);
+  const openDefaultSurface = () => onSurfaceChange(choiceCount > 1 ? "home" : config.callbacks.enabled ? "callbacks" : config.channels.voice.enabled ? "voice" : config.channels.video.enabled ? "video" : "chat");
   const previewElement = surface === "launcher" ? (
     <div className={`relative z-10 flex flex-col gap-3 ${leftAligned ? "items-start" : "items-end"}`}>
       <HeadsUp config={config} />
@@ -520,10 +528,10 @@ export default function WidgetStudioPreview({
         <HomePreview config={config} onSurfaceChange={onSurfaceChange} edgeToEdge={fullscreenPhone} edgeInsets={safeArea} />
       ) : (
         <WidgetFrame
-          key={`${surface}-${previewScenario || "default"}`}
+          key={`${surface}-${surface === "video" ? videoScenario : previewScenario || "default"}`}
           previewWidget={{ id: widget.publicId, name: widget.name, config, callbacks: config.callbacks, previewAgent: previewUser, edgeToEdge: fullscreenPhone, edgeInsets: safeArea }}
-          previewMode={surface === "voice" ? "voice" : "messaging"}
-          previewScenario={surface === "callbacks" ? "callbacks" : previewScenario}
+          previewMode={surface === "video" ? "video" : surface === "voice" ? "voice" : "messaging"}
+          previewScenario={surface === "video" ? `video:${videoScenario}` : surface === "callbacks" ? "callbacks" : previewScenario}
           onPreviewClose={() => onSurfaceChange("launcher")}
           onPreviewHome={() => onSurfaceChange("home")}
         />
@@ -543,6 +551,7 @@ export default function WidgetStudioPreview({
 
   return (
     <section className="flex min-h-0 min-w-0 flex-1 flex-col bg-muted/20">
+      {surface === "video" && <div className="flex shrink-0 items-center gap-3 border-b bg-background px-4 py-2"><span className="text-xs text-muted-foreground">Video preview</span><Select value={videoScenario} onValueChange={setVideoScenario}><SelectTrigger className="h-8 w-48" aria-label="Video preview state"><SelectValue /></SelectTrigger><SelectContent>{Object.entries({ prejoin: "Before joining", waiting: "Waiting in queue", connected: "Connected", screen: "Screen sharing" }).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></div>}
       {device.type === "desktop" ? (
         <div
           className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#e9eaec]"

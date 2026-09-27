@@ -2248,6 +2248,22 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@telnyx/video@npm:1.0.2":
+  version: 1.0.2
+  resolution: "@telnyx/video@npm:1.0.2"
+  dependencies:
+    "@types/uuid": "npm:^8.3.0"
+    events: "npm:^3.3.0"
+    immer: "npm:^9.0.2"
+    js-logger: "npm:^1.6.1"
+    nanoevents: "npm:^5.1.13"
+    sdp-transform: "npm:^2.14.1"
+    uuid: "npm:^8.3.2"
+    window-or-global: "npm:^1.0.1"
+  checksum: 10c0/a8efeaf286b552e0748784e07a58f472dbc58785f01109f19527cf3457cfd58afd85e6fe67aaafac3109fe47ca18ae6f8332a6387760f6141dc3db7799524805
+  languageName: node
+  linkType: hard
+
 "@telnyx/webrtc@npm:2.27.10":
   version: 2.27.10
   resolution: "@telnyx/webrtc@npm:2.27.10"
@@ -2496,6 +2512,13 @@ __metadata:
   version: 0.0.6
   resolution: "@types/use-sync-external-store@npm:0.0.6"
   checksum: 10c0/77c045a98f57488201f678b181cccd042279aff3da34540ad242f893acc52b358bd0a8207a321b8ac09adbcef36e3236944390e2df4fcedb556ce7bb2a88f2a8
+  languageName: node
+  linkType: hard
+
+"@types/uuid@npm:^8.3.0":
+  version: 8.3.4
+  resolution: "@types/uuid@npm:8.3.4"
+  checksum: 10c0/b9ac98f82fcf35962317ef7dc44d9ac9e0f6fdb68121d384c88fe12ea318487d5585d3480fa003cf28be86a3bbe213ca688ba786601dce4a97724765eb5b1cf2
   languageName: node
   linkType: hard
 
@@ -4687,6 +4710,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"immer@npm:^9.0.2":
+  version: 9.0.21
+  resolution: "immer@npm:9.0.21"
+  checksum: 10c0/03ea3ed5d4d72e8bd428df4a38ad7e483ea8308e9a113d3b42e0ea2cc0cc38340eb0a6aca69592abbbf047c685dbda04e3d34bf2ff438ab57339ed0a34cc0a05
+  languageName: node
+  linkType: hard
+
 "import-fresh@npm:^3.2.1":
   version: 3.3.1
   resolution: "import-fresh@npm:3.3.1"
@@ -5078,6 +5108,13 @@ __metadata:
     react:
       optional: true
   checksum: 10c0/8c9cbdcc2956cbe9b78f61e8ffe3018f7c7cd7efbb8260e7996dba4ac7cc9ee5e2fc53d5c218d9b5f04052672535be9fa7848293b8a35410d17112f95e6395b0
+  languageName: node
+  linkType: hard
+
+"js-logger@npm:^1.6.1":
+  version: 1.6.1
+  resolution: "js-logger@npm:1.6.1"
+  checksum: 10c0/e443e997790cac7de039382ab8f46e284db855090e244cc7b95e7755bc2b0eb793f9f9bd901b80c1677cecaad155dd3a376a534674e7b2f57982581b703e9534
   languageName: node
   linkType: hard
 
@@ -6051,6 +6088,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"nanoevents@npm:^5.1.13":
+  version: 5.1.13
+  resolution: "nanoevents@npm:5.1.13"
+  checksum: 10c0/eaab069c23b3ca9ae24c1f903b35b0a0625cc5d8a3d5653287438954bd06cbb46fd1a3d9888bb4487ccfff84ac0cda59bd14b7a8324005162dfa81c99106beef
+  languageName: node
+  linkType: hard
+
 "nanoid@npm:^3.3.16, nanoid@npm:^3.3.17":
   version: 3.3.18
   resolution: "nanoid@npm:3.3.18"
@@ -6999,6 +7043,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"sdp-transform@npm:^2.14.1":
+  version: 2.15.0
+  resolution: "sdp-transform@npm:2.15.0"
+  bin:
+    sdp-verify: checker.js
+  checksum: 10c0/96c060f113a3d5418defa168db609f7e23e5bd7954fa1cf7784f103dbe702e24d667e5310d2ac6d88abdb32322af83d6ebd0df08e07f4f172d5ed5888f921386
+  languageName: node
+  linkType: hard
+
 "semver@npm:^6.3.1":
   version: 6.3.1
   resolution: "semver@npm:6.3.1"
@@ -7498,6 +7551,7 @@ __metadata:
     "@tabler/icons-react": "npm:^3.40.0"
     "@tailwindcss/postcss": "npm:^4.3.3"
     "@telnyx/ai-agent-lib": "npm:^0.6.5"
+    "@telnyx/video": "npm:1.0.2"
     "@types/node": "npm:^22.19.2"
     "@types/pg": "npm:^8"
     "@types/react": "npm:^19.3.0"
@@ -8090,6 +8144,13 @@ __metadata:
   bin:
     node-which: ./bin/node-which
   checksum: 10c0/66522872a768b60c2a65a57e8ad184e5372f5b6a9ca6d5f033d4b0dc98aff63995655a7503b9c0a2598936f532120e81dd8cc155e2e92ed662a2b9377cc4374f
+  languageName: node
+  linkType: hard
+
+"window-or-global@npm:^1.0.1":
+  version: 1.0.1
+  resolution: "window-or-global@npm:1.0.1"
+  checksum: 10c0/55af1894c52d9a769444477d8153d953163d6e60f64a25958c09cbc632c00faadd14e32b101310a0eee47b17e540a66c8fc3a069d9c2ada32a5aff553c20f5c5
   languageName: node
   linkType: hard
 

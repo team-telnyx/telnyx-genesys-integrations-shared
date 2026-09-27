@@ -1,7 +1,7 @@
 # Telnyx integrations for Genesys Cloud
 
 <!-- app-version:start -->
-[![Version 1.0.0](https://img.shields.io/badge/version-1.0.0-00C389)](https://github.com/team-telnyx/telnyx-genesys-integrations/releases)
+[![Version 1.1.0](https://img.shields.io/badge/version-1.1.0-00C389)](https://github.com/team-telnyx/telnyx-genesys-integrations-shared/releases)
 <!-- app-version:end -->
 
 A Next.js application and administration toolkit for connecting Telnyx services
@@ -258,6 +258,16 @@ entrypoints have been removed.
 
 The Genesys light/dark theme preference is stored per Genesys organization and
 administrator user in PostgreSQL.
+
+In **Widget Studio > Delivery > Test Page**, run any enabled, published widget on
+the built-in customer page, supply test context, reload it or open it in a new tab.
+No external website is needed. See [Widget Studio Test Page](docs/widget-test-page.md).
+
+Widget Studio also supports **Video**: choose a Genesys Cloud queue, configure
+the visitor and agent video experience, and publish to provision its routing and
+agent panel. Waiting playlists accept uploaded MP4/WebM files and HTTPS links.
+The queue's automatic panel opening can be configured under the queue selector.
+See [Video setup](docs/video-channel.md) for prerequisites, storage and wrap-up.
 
 ## Telnyx TTS Connector installer
 

@@ -97,7 +97,7 @@ test("Callback form and scheduling policy belong to the versioned widget configu
   assert.doesNotMatch(frame, /type="datetime-local"/);
   assert.match(loader, /widget\.callbacks && widget\.callbacks\.enabled/);
   assert.doesNotMatch(loader, /config\.callbacks/);
-  assert.match(loader, /var soleAction = callbacks \? "callbacks" : voice \? "voice" : "messaging"/);
+  assert.match(loader, /var soleAction = callbacks \? "callbacks" : voice \? "voice" : video \? "video" : "messaging"/);
   assert.match(loader, /triggers\.autoOpen\.surface === "home"[\s\S]*?openPanel\(soleAction\)/);
   assert.match(callbackRoute, /callbackSlotCounts/);
   assert.match(callbackRoute, /firstAvailableCallbackSlot/);
@@ -136,7 +136,7 @@ test("published widget navigates to its own home surface instead of closing the 
   assert.match(frame, /mode === "home"\s*\?\s*<HomeSurface/);
   assert.match(frame, /\{\(previewWidget \|\| \(surfaces\.length > 1 && mode !== "home"\)\) && \(/);
   // Voice can be reached from the home surface, so the panel always carries the grant.
-  assert.match(loader, /frame\.allow = voice \? "microphone" : ""/);
+  assert.match(loader, /frame\.allow = video \? "microphone; camera; display-capture; autoplay; fullscreen" : voice \? "microphone" : ""/);
 });
 
 test("the launcher opens the panel on its home surface instead of a launcher dropdown", async () => {
@@ -270,7 +270,7 @@ test("widget channels share one widget-owned assistant while Web Calls transport
     readFile(widgetManagementScriptPath, "utf8"),
   ]);
   assert.match(source, /function AssistantPicker/);
-  assert.match(source, /This widget revision owns one AI assistant for all enabled channels/);
+  assert.match(source, /Messaging and voice use the selected AI assistant/);
   assert.match(source, /channelProfiles = \[\]/);
   assert.match(source, /label="Widget AI assistant"/);
   assert.match(source, /set\(\["channels", "messaging", "assistantId"\]/);
@@ -283,7 +283,7 @@ test("widget channels share one widget-owned assistant while Web Calls transport
   assert.doesNotMatch(source, /label="Assistant version"/);
   assert.doesNotMatch(source, /voiceProfile\?\.config\?\.assistantVersionId/);
   assert.doesNotMatch(source, /voice-routing/);
-  assert.match(source, /Every enabled channel uses the assistant selected above/);
+  assert.match(source, /Messaging and voice use the assistant selected above/);
   assert.match(inventoryRoute, /listAdminComponentConfigs/);
   assert.match(inventoryRoute, /storedAudioComponent\?\.enabled/);
   assert.match(inventoryRoute, /storedAudioComponent\.config\?\.routes/);
@@ -479,7 +479,7 @@ test("preview offers polished device presets, orientation switching and phone-on
   assert.match(preview, /<SelectTrigger[^>]*aria-label="Preview device"/);
   assert.match(preview, /function OrientationSwitchIcon/);
   assert.match(preview, /<OrientationSwitchIcon orientation=\{viewport\.orientation\}/);
-  assert.doesNotMatch(preview, /<SelectValue/);
+  assert.doesNotMatch(preview.split("function useMeasuredSize")[0], /<SelectValue/);
   assert.match(preview, /function SignalBars/);
   assert.match(preview, /function BatteryStatus/);
   assert.match(preview, /function readableForeground/);
@@ -518,7 +518,7 @@ test("handoff phases and composer spacing are configurable and reflected in prev
   assert.match(controls, /Show agent connected message/);
   assert.match(controls, /<RangeField label="Corner radius" value=\{config\.components\.handoff\.radius\} min=\{0\} max=\{32\}/);
   assert.match(controls, /Tools to message input gap/);
-  assert.match(preview, /previewScenario=\{surface === "callbacks" \? "callbacks" : previewScenario\}/);
+  assert.match(preview, /previewScenario=\{surface === "video" \? `video:\$\{videoScenario\}` : surface === "callbacks" \? "callbacks" : previewScenario\}/);
   assert.match(frame, /import HandoffTimeline from "\.\/HandoffTimeline"/);
   assert.match(timeline, /export default function HandoffTimeline/);
   assert.match(frame, /previewAll=\{Boolean\(previewHandoff\)\}/);
@@ -635,7 +635,7 @@ test("the attachment preview size and placement are part of the widget configura
   assert.match(frame, /type: "telnyx-widget-expand"/);
   assert.match(frame, /type: "telnyx-widget-collapse"/);
   // The host page geometry must be restored, including when the panel is closed.
-  assert.match(loader, /function expandFrame\(widthPercent, heightPercent\)/);
+  assert.match(loader, /function expandFrame\(widthPercent, heightPercent, withBackdrop, aspectRatio, headerHeight\)/);
   assert.match(loader, /frame\.setAttribute\("style", collapsedStyle\)/);
   // Closing restores the host page geometry whether the panel is torn down or
   // kept alive to count unread replies.
@@ -654,7 +654,7 @@ test("Engagement is ordered from audience to rules and exposes appearance animat
     /label: "Engagement", items: \[\s*\{ id: "targeting"[\s\S]*?\{ id: "triggers"[\s\S]*?\{ id: "headsup"[\s\S]*?\{ id: "rules"/
   );
   // The loader already opened the callback surface; only the schema and picker lagged.
-  assert.match(config, /surface: z\.enum\(\["home", "chat", "voice", "callbacks"\]\)/);
+  assert.match(config, /surface: z\.enum\(\["home", "chat", "voice", "video", "callbacks"\]\)/);
   assert.match(controls, /\{ value: "callbacks", label: "Callback" \}/);
   assert.match(loader, /triggers\.autoOpen\.surface === "callbacks" && callbacks/);
 

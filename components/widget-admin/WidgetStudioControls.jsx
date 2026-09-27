@@ -20,6 +20,7 @@ import {
 } from "@/lib/widgets/preview-devices";
 import { isValidWidgetAllowedOrigin } from "@/lib/widgets/config";
 import { localizeWidgetConfig, WIDGET_LOCALES } from "@/lib/widgets/locales";
+import VideoSettings from "./VideoSettings";
 import IconPicker from "./IconPicker";
 import RulesDecisionBuilder from "./RulesDecisionBuilder";
 
@@ -546,16 +547,19 @@ export default function WidgetStudioControls({
                 set(["engagement", "headsUp"], localized.engagement.headsUp);
               }}
             />
-            <SelectField label="Default surface" value={config.behavior.defaultSurface} onChange={(value) => set(["behavior", "defaultSurface"], value)} options={["home", "chat", "voice"]} />
+            <SelectField label="Default surface" value={config.behavior.defaultSurface} onChange={(value) => set(["behavior", "defaultSurface"], value)} options={["home", "chat", "voice", "video"]} />
             <SelectField label="When reopened" value={config.behavior.reopenBehavior} onChange={(value) => set(["behavior", "reopenBehavior"], value)} options={[{ value: "resume", label: "Resume previous session" }, { value: "new", label: "Start a new session" }]} />
             <ToggleField label="Persist session" checked={config.behavior.persistSession} onChange={(value) => set(["behavior", "persistSession"], value)} />
             <NumberField label="Inactivity timeout" value={config.behavior.inactivityMinutes} min={5} max={1440} suffix="min" onChange={(value) => set(["behavior", "inactivityMinutes"], value)} />
           </Section>
         )}
 
+        {section === "video" && <VideoSettings key={widgetId} config={config} set={set} />}
+
         {section === "channels" && (
-          <Section title="Available channels" description="This widget revision owns one AI assistant for all enabled channels. Queue policies and Web Calls transport remain shared installation settings.">
+          <Section title="Available channels" description="Messaging and voice use the selected AI assistant. Configure the video queue and display settings in Video.">
             <ToggleField label="Messaging" checked={config.channels.messaging.enabled} onChange={(value) => set(["channels", "messaging", "enabled"], value)} />
+            <ToggleField label="Video" checked={config.channels.video.enabled} onChange={(value) => set(["channels", "video", "enabled"], value)} />
             <ToggleField label="Voice" checked={config.channels.voice.enabled} onChange={(value) => set(["channels", "voice", "enabled"], value)} />
             {(config.channels.messaging.enabled || config.channels.voice.enabled) && <AssistantPicker value={widgetAssistantId} assistants={assistants} onChange={(value) => {
               if (config.channels.messaging.enabled) set(["channels", "messaging", "assistantId"], value);
@@ -571,7 +575,7 @@ export default function WidgetStudioControls({
                 <Field label="Voice media region"><Input readOnly className="bg-background" value={voiceProfile?.config?.region || "Not configured"} /></Field>
               </>}
             </div>
-            <div className="flex gap-2 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground"><Info className="mt-0.5 size-4 shrink-0" /> Every enabled channel uses the assistant selected above. To change shared queues, trunk or Web Calls routing, open AI &amp; Channels.</div>
+            <div className="flex gap-2 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground"><Info className="mt-0.5 size-4 shrink-0" /> Messaging and voice use the assistant selected above. Video connects directly to an agent. To change shared queues, trunk or Web Calls routing, open AI &amp; Channels.</div>
           </Section>
         )}
 

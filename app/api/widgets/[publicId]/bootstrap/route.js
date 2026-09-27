@@ -5,7 +5,7 @@ import {
   publicWidgetConfig,
 } from "@/lib/widgets/config";
 import { getPublishedWidget, widgetOrganizationId } from "@/lib/widgets/store";
-import { createWidgetBootstrapToken } from "@/lib/widgets/session-tokens";
+import { createWidgetBootstrapToken, verifyWidgetTestGrant } from "@/lib/widgets/session-tokens";
 import { normalizeTelnyxWebCallerNumber } from "@/lib/genesys/sip-transfer-tool.mjs";
 import { getAdminCallbacksConfig, getAdminWebCallerNumber } from "@/lib/genesys/admin-console-store.mjs";
 
@@ -38,12 +38,19 @@ async function loadAllowedWidget(request, publicId) {
   if (!widget) return { status: 404, error: "Widget not found or not published" };
 
   const origin = callerOrigin(request);
+  const suppliedGrant = new URL(request.url).searchParams.get("grant");
+  const testGrant = suppliedGrant && verifyWidgetTestGrant(suppliedGrant, {
+    publicId, revisionId: widget.revision_id, origin,
+  });
+  if (suppliedGrant !== null && !testGrant) {
+    return { status: 403, error: "Test access expired or changed. Reload the widget from Test Page.", origin };
+  }
   const serverOrigin = new URL(request.url).origin;
   const sameOrigin = origin === serverOrigin;
-  if (!origin || (!sameOrigin && !isWidgetOriginAllowed(origin, widget.config.allowedOrigins))) {
+  if (!origin || (!testGrant && !sameOrigin && !isWidgetOriginAllowed(origin, widget.config.allowedOrigins))) {
     return { status: 403, error: "Embedding origin is not allowed", origin };
   }
-  return { widget, origin };
+  return { widget, origin, testGrant };
 }
 
 export async function GET(request, { params }) {
@@ -88,7 +95,7 @@ export async function GET(request, { params }) {
         bootstrapToken: createWidgetBootstrapToken({
           publicId: result.widget.public_id,
           revisionId: result.widget.revision_id,
-          origin: result.origin,
+          origin: result.testGrant ? `gix-test:${result.origin}` : result.origin,
         }),
         launcherIconSvg: widgetIconSvgMarkup(result.widget.config.components.launcher.icon),
         config: publicWidgetConfig(runtimeConfig, { voiceCallerNumber }),

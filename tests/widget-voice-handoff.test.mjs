@@ -11,9 +11,9 @@ import {
 import { telnyxCallControlId } from "../lib/widgets/voice-call.js";
 import { handoffTimelinePhases } from "../lib/widgets/handoff-timeline.js";
 
-const sessionId = "5d38d01c-981c-4c60-820d-cb7aeec17a49";
+const sessionId = "30000000-0000-4000-8000-000000000004";
 const telnyxCallId = "v3:widget-call-control-id";
-const conversationId = "bb377db7-839c-4f44-9e20-469af9040118";
+const conversationId = "30000000-0000-4000-8000-000000000005";
 
 function notification(agent = null) {
   return {
@@ -292,7 +292,7 @@ test("voice notification subscriptions include central and published widget queu
 });
 
 test("WebRTC correlation uses the Telnyx call-control ID instead of the SDK call UUID", () => {
-  const sdkCallId = "e1f7bfef-fe94-4609-b7ec-7dd9604f096f";
+  const sdkCallId = "30000000-0000-4000-8000-000000000006";
   const callControlId = "v3:0OECBVxnVNksxZxN0nuZQhkLPaVP2chujLXKtDJU3VoqdpphtBN27w";
   assert.equal(telnyxCallControlId({
     id: sdkCallId,

@@ -11,7 +11,14 @@
   }
 
   var baseUrl = new URL(script.src).origin;
-  fetch(baseUrl + "/api/widgets/" + encodeURIComponent(widgetId) + "/bootstrap", {
+  var testGrant = script.dataset.testGrant || "";
+  function bootstrapUrl(id) {
+    return baseUrl + "/api/widgets/" + encodeURIComponent(id) + "/bootstrap" + (testGrant ? "?grant=" + encodeURIComponent(testGrant) : "");
+  }
+  function reportTestStatus(status, message) {
+    if (testGrant) window.dispatchEvent(new CustomEvent("telnyx-widget-test-status", { detail: { publicId: widgetId, status: status, message: message } }));
+  }
+  fetch(bootstrapUrl(widgetId), {
     mode: "cors", credentials: "omit", cache: "no-store",
   })
     .then(function (response) {
@@ -20,9 +27,12 @@
     })
     .then(function (payload) {
       var evaluated = evaluateWidget(payload.widget);
-      if (evaluated.visible) mount(evaluated.widget);
+      if (evaluated.visible) {
+        mount(evaluated.widget);
+        reportTestStatus(document.getElementById("telnyx-widget-" + widgetId) ? "ready" : "hidden", "Targeting rules hide the widget on this page or device.");
+      } else reportTestStatus("hidden", "A decision rule hides the widget for this context.");
     })
-    .catch(function (error) { console.error("[Telnyx widget] failed to initialize:", error); });
+    .catch(function (error) { console.error("[Telnyx widget] failed to initialize:", error); reportTestStatus("error", error.message); });
 
   function wildcardMatches(value, pattern) {
     if (!pattern) return false;
@@ -170,9 +180,13 @@
           var value = interpolate(action.value, context);
           if (action.type === "visibility") visible = value !== "hidden" && value !== "false";
           if (action.type === "channels") {
-            config.channels.messaging.enabled = config.channels.messaging.enabled && (value === "messaging" || value === "both");
-            config.channels.voice.enabled = config.channels.voice.enabled && (value === "voice" || value === "both");
-            if (!config.channels.messaging.enabled && !config.channels.voice.enabled) visible = false;
+            // Same set semantics as evaluateWidgetDecisions on the server: "both"
+            // is messaging + voice, "all" adds video, a list selects explicitly.
+            var allowed = value === "both" ? ["messaging", "voice"] : value === "all" ? ["messaging", "voice", "video"] : String(value || "").split(/[\s,]+/).filter(Boolean);
+            config.channels.messaging.enabled = config.channels.messaging.enabled && allowed.indexOf("messaging") >= 0;
+            config.channels.voice.enabled = config.channels.voice.enabled && allowed.indexOf("voice") >= 0;
+            if (config.channels.video) config.channels.video.enabled = config.channels.video.enabled && allowed.indexOf("video") >= 0;
+            if (!config.channels.messaging.enabled && !config.channels.voice.enabled && !(config.channels.video && config.channels.video.enabled)) visible = false;
           }
           if (action.type === "locale") localize(config, value);
           if (action.type === "surface") {
@@ -250,6 +264,7 @@
       ".enter{animation-duration:" + animation.durationMs + "ms;animation-timing-function:cubic-bezier(.16,1,.3,1);animation-fill-mode:both}" +
       ".enter-fade{animation-name:tn-in-fade}.enter-scale{animation-name:tn-in-scale}.enter-slide-up{animation-name:tn-in-slide-up}.enter-drop{animation-name:tn-in-drop}.enter-slide-right{animation-name:tn-in-slide-right}" +
       "@keyframes tn-in-fade{from{opacity:0}}@keyframes tn-in-scale{from{opacity:0;transform:scale(.88)}}@keyframes tn-in-slide-up{from{opacity:0;transform:translateY(18px)}}@keyframes tn-in-drop{from{opacity:0;transform:translateY(-18px)}}@keyframes tn-in-slide-right{from{opacity:0;transform:translateX(26px)}}" +
+      ".backdrop{position:fixed;inset:0;z-index:2147483000;background:rgba(0,0,0,.45)}" +
       ".frame.enter-scale{transform-origin:" + (dimensions.panelPosition === "bottom-left" ? "bottom left" : "bottom right") + "}" +
       "@media(prefers-reduced-motion:reduce){.pulse,.bounce,.fade,.enter{animation:none}}" +
       "@media(max-width:600px){.frame.full{inset:0;width:100vw;height:100dvh}.frame:not(.full){width:calc(100vw - 24px);height:min(" + dimensions.panelHeight + "px,calc(100dvh - 24px));bottom:12px;left:12px;right:auto}.wrap{bottom:12px;" + launcherSide + ":12px;" + launcherOtherSide + ":auto}}";
@@ -259,11 +274,12 @@
     wrap.className = "wrap";
     var messaging = config.channels.messaging.enabled;
     var voice = config.channels.voice.enabled;
+    var video = Boolean(config.channels.video && config.channels.video.enabled);
     // The bootstrap response carries the callback experience beside the public
     // config, which never includes it.
     var callbacks = Boolean(widget.callbacks && widget.callbacks.enabled);
-    var availableActionCount = Number(messaging) + Number(voice) + Number(callbacks);
-    var soleAction = callbacks ? "callbacks" : voice ? "voice" : "messaging";
+    var availableActionCount = Number(messaging) + Number(voice) + Number(video) + Number(callbacks);
+    var soleAction = callbacks ? "callbacks" : voice ? "voice" : video ? "video" : "messaging";
     var opening = false;
     // With more than one way to reach support the panel opens on its home
     // surface, which is the same screen the panel's home button returns to.
@@ -316,6 +332,7 @@
       headsUp.classList.remove("open");
       if (availableActionCount > 1 && config.behavior.defaultSurface === "chat") openPanel("messaging");
       else if (availableActionCount > 1 && config.behavior.defaultSurface === "voice") openPanel("voice");
+      else if (config.behavior.defaultSurface === "video" && video) openPanel("video");
       else openPanel(defaultAction);
     });
     wrap.appendChild(headsUp);
@@ -363,6 +380,8 @@
           openPanel("callbacks");
         } else if (triggers.autoOpen.surface === "voice" && voice) {
           openPanel("voice");
+        } else if (triggers.autoOpen.surface === "video" && video) {
+          openPanel("video");
         } else if (messaging) {
           openPanel("messaging");
         } else {
@@ -411,7 +430,7 @@
       discardRetainedFrame();
       opening = true;
       fab.disabled = true;
-      fetch(baseUrl + "/api/widgets/" + encodeURIComponent(widget.id) + "/bootstrap", { mode: "cors", credentials: "omit", cache: "no-store" })
+      fetch(bootstrapUrl(widget.id), { mode: "cors", credentials: "omit", cache: "no-store" })
         .then(function (response) {
           if (!response.ok) throw new Error("bootstrap refresh returned " + response.status);
           return response.json();
@@ -428,6 +447,7 @@
         })
         .catch(function (error) {
           console.error("[Telnyx widget] failed to open:", error);
+          reportTestStatus("error", error.message);
           opening = false;
           fab.disabled = false;
         });
@@ -441,7 +461,7 @@
       frame.title = widget.name + " – " + mode;
       // The panel can move to the voice surface from its home screen, so the
       // microphone is granted whenever this widget offers a voice channel.
-      frame.allow = voice ? "microphone" : "";
+      frame.allow = video ? "microphone; camera; display-capture; autoplay; fullscreen" : voice ? "microphone" : "";
       frame.src = baseUrl + "/widget/frame?mode=" + encodeURIComponent(mode) + "&parentOrigin=" + encodeURIComponent(window.location.origin);
       function closeFrame() {
         collapseFrame();
@@ -464,22 +484,59 @@
       // A document preview can ask for more room than the panel has. The frame is
       // grown over the host page and restored to its own geometry afterwards.
       var collapsedStyle = null;
-      function expandFrame(widthPercent, heightPercent) {
+      var backdrop = null;
+      function expandFrame(widthPercent, heightPercent, withBackdrop, aspectRatio, headerHeight) {
         if (collapsedStyle === null) collapsedStyle = frame.getAttribute("style") || "";
-        var width = Math.max(30, Math.min(100, Number(widthPercent) || 60));
+        // On phones the panel already spans the page; a modal narrower than
+        // the panel would shrink the video instead of enlarging it.
+        var width = window.innerWidth <= 600 ? 100 : Math.max(20, Math.min(100, Number(widthPercent) || 60));
         var height = Math.max(30, Math.min(100, Number(heightPercent) || 80));
+        // An avatar or video modal follows the stage's aspect ratio (plus the
+        // frame's own chrome): the width is the requested share of the page
+        // unless the height limit is hit, in which case the modal narrows so
+        // the stage keeps its proportions; a document preview takes the whole limit.
+        var widthCss = width + "vw";
+        var heightCss = height + "vh";
+        if (Number(aspectRatio) > 0) {
+          var chrome = Number(headerHeight) || 0;
+          var widthPx = (width / 100) * window.innerWidth;
+          var maxStage = (height / 100) * window.innerHeight - chrome;
+          if (widthPx / Number(aspectRatio) > maxStage) widthPx = Math.max(maxStage, 0) * Number(aspectRatio);
+          widthCss = Math.round(widthPx) + "px";
+          heightCss = Math.round(widthPx / Number(aspectRatio) + chrome) + "px";
+        }
         frame.style.cssText = "position:fixed;z-index:2147483001;border:0;background:transparent;" +
-          "width:" + width + "vw;height:" + height + "vh;left:50%;top:50%;transform:translate(-50%,-50%);" +
+          "width:" + widthCss + ";height:" + heightCss + ";left:50%;top:50%;transform:translate(-50%,-50%);" +
           "right:auto;bottom:auto;filter:drop-shadow(0 18px 42px rgba(0,0,0,.35))";
+        if (withBackdrop && !backdrop) {
+          backdrop = document.createElement("div");
+          backdrop.className = "backdrop";
+          shadow.insertBefore(backdrop, frame);
+        } else if (!withBackdrop && backdrop) {
+          backdrop.remove();
+          backdrop = null;
+        }
       }
       function collapseFrame() {
+        if (backdrop) { backdrop.remove(); backdrop = null; }
         if (collapsedStyle === null) return;
         frame.setAttribute("style", collapsedStyle);
         collapsedStyle = null;
       }
+      // The video surface may ask for its own panel size (Widget Studio →
+      // Video → Panel size); the size is kept behind an enlarged modal and
+      // dropped when the surface closes. Phones keep the responsive panel.
+      function setPanelSize(width, height) {
+        // The "full" class only takes effect on phones (media query), so the
+        // width check is the mobile guard; desktop panels resize freely.
+        if (window.innerWidth <= 600) return;
+        var css = width && height ? "width:" + Math.round(width) + "px;height:" + Math.round(height) + "px;" : "";
+        if (collapsedStyle !== null) collapsedStyle = css;
+        else frame.setAttribute("style", css);
+      }
       var hasMessagingSession = false;
       function refreshFrameBootstrap(requestId) {
-        fetch(baseUrl + "/api/widgets/" + encodeURIComponent(widget.id) + "/bootstrap", {
+        fetch(bootstrapUrl(widget.id), {
           mode: "cors", credentials: "omit", cache: "no-store",
         })
           .then(function (response) {
@@ -507,8 +564,10 @@
         if (event.origin !== baseUrl || event.source !== frame.contentWindow) return;
         if (event.data && event.data.type === "telnyx-widget-session") hasMessagingSession = event.data.active === true;
         if (event.data && event.data.type === "telnyx-widget-bootstrap-request" && event.data.widgetId === widget.id) refreshFrameBootstrap(event.data.requestId);
-        if (event.data && event.data.type === "telnyx-widget-expand") expandFrame(event.data.widthPercent, event.data.heightPercent);
+        if (event.data && event.data.type === "telnyx-widget-expand") expandFrame(event.data.widthPercent, event.data.heightPercent, event.data.backdrop === true, event.data.aspectRatio, event.data.headerHeight);
         if (event.data && event.data.type === "telnyx-widget-collapse") collapseFrame();
+        if (event.data && event.data.type === "telnyx-widget-panel-size") setPanelSize(Math.max(320, Math.min(960, Number(event.data.width) || 480)), Math.max(420, Math.min(900, Number(event.data.height) || 640)));
+        if (event.data && event.data.type === "telnyx-widget-panel-size-reset") setPanelSize(0, 0);
         if (event.data && event.data.type === "telnyx-widget-ready") frame.contentWindow.postMessage({ type: "telnyx-widget-config", widget: runtimeWidget, mode: mode }, baseUrl);
         if (event.data && event.data.type === "telnyx-widget-unread") setUnreadCount(event.data.count);
         // A widget with a single surface has no home screen to return to, so its

@@ -316,7 +316,7 @@ test("Callbacks resolve the published handoff script from the managed Audio Conn
 test("Callback data contains exact consent evidence and resolves immediate time in the visitor timezone", () => {
   const now = new Date("2026-08-17T08:02:00.000Z");
   const data = callbackContactData({
-    requestId: "05b6edda-e1a8-47b1-ad78-ece9db4fcf27",
+    requestId: "30000000-0000-4000-8000-000000000003",
     firstName: "Ada",
     lastName: "Lovelace",
     phoneNumber: "+48123456789",
@@ -339,7 +339,7 @@ test("Callback data contains exact consent evidence and resolves immediate time 
 
 test("Callback API data rejects callback modes disabled by the published widget", () => {
   const input = {
-    requestId: "05b6edda-e1a8-47b1-ad78-ece9db4fcf27",
+    requestId: "30000000-0000-4000-8000-000000000003",
     firstName: "Ada",
     lastName: "Lovelace",
     phoneNumber: "+48123456789",
