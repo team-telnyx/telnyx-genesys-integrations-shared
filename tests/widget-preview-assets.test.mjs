@@ -14,7 +14,7 @@ test("widget preview screenshot is stored under its widget ID and survives confi
   const root = await mkdtemp(path.join(os.tmpdir(), "widget-assets-"));
   const previous = process.env.WIDGET_ASSET_DIR;
   process.env.WIDGET_ASSET_DIR = root;
-  const widgetId = "2ae5c8cb-5713-4bce-8f31-c393525f5146";
+  const widgetId = "30000000-0000-4000-8000-000000000001";
   const variant = "iphone-16-pro__portrait";
   const image = Buffer.concat([Buffer.from("RIFF"), Buffer.alloc(4), Buffer.from("WEBPVP8 "), Buffer.alloc(16)]);
   try {
@@ -32,7 +32,7 @@ test("widget preview screenshot is stored under its widget ID and survives confi
 });
 
 test("widget preview storage rejects invalid IDs and non-WebP payloads", async () => {
-  const widgetId = "2ae5c8cb-5713-4bce-8f31-c393525f5146";
+  const widgetId = "30000000-0000-4000-8000-000000000001";
   await assert.rejects(writeWidgetPreviewAsset("../escape", "desktop-responsive__landscape", Buffer.from("RIFFxxxxWEBP")), /Invalid widget ID/);
   await assert.rejects(writeWidgetPreviewAsset(widgetId, "../escape", Buffer.from("RIFFxxxxWEBP")), /Invalid preview variant/);
   await assert.rejects(writeWidgetPreviewAsset(widgetId, "desktop-responsive__landscape", Buffer.from("not an image")), /valid WebP/);
@@ -42,8 +42,8 @@ test("cloning a widget copies every device-specific preview image", async () => 
   const root = await mkdtemp(path.join(os.tmpdir(), "widget-assets-clone-"));
   const previous = process.env.WIDGET_ASSET_DIR;
   process.env.WIDGET_ASSET_DIR = root;
-  const sourceId = "2ae5c8cb-5713-4bce-8f31-c393525f5146";
-  const targetId = "52d75c62-05f1-4a8f-a7b2-e8b0dfe83d38";
+  const sourceId = "30000000-0000-4000-8000-000000000001";
+  const targetId = "30000000-0000-4000-8000-000000000002";
   const image = Buffer.concat([Buffer.from("RIFF"), Buffer.alloc(4), Buffer.from("WEBPVP8 "), Buffer.alloc(16)]);
   try {
     await writeWidgetPreviewAsset(sourceId, "iphone-16-pro__portrait", image);

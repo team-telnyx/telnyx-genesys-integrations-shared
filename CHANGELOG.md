@@ -2,10 +2,57 @@
 
 Official versions follow [Semantic Versioning](https://semver.org/). The same
 notes are published to
-[GitHub Releases](https://github.com/team-telnyx/telnyx-genesys-integrations/releases),
+[GitHub Releases](https://github.com/team-telnyx/telnyx-genesys-integrations-shared/releases),
 so an operator without repository access can read the release history. See
 [docs/VERSIONING.md](docs/VERSIONING.md) for the compatibility policy and the
 steps to publish a release.
+
+## [1.1.0] - 2026-09-27
+
+### Added
+
+- Video calls in the web widget, powered by Telnyx Video Rooms and routed to a
+  selected Genesys Cloud queue through Open Messaging. Publishing provisions
+  the agent Interaction Widget, inbound message integration and Architect flow.
+- Visitor and agent video views with camera preview, microphone and camera
+  controls, screen sharing, layout selection and configurable waiting screens.
+  Optional recording stores media in the connected Telnyx account.
+- Queue-specific automatic opening of the video agent panel. Widget Studio
+  reads the current Genesys setting and applies toggle changes on Publish,
+  preserving other enabled video queues and unrelated media defaults.
+- A waiting-video library with MP4/WebM uploads up to 64 MiB, reusable media,
+  playlist ordering, HTTPS links and byte-range playback. Referenced media is
+  protected from deletion.
+- Widget Studio Test Page to run each published widget without hosting an
+  external website. It supports test context, reload and opening in a new tab;
+  access uses a scoped, expiring administrator grant.
+
+### Fixed
+
+- Ending a video call preserves Genesys after-contact work so agents can choose
+  the wrap-up codes configured on their queue.
+- Theme and video-layout controls no longer overlap in the Genesys agent panel.
+- Test Page supports Light, Dark and System themes, with responsive theme
+  controls contained within its header.
+- Video launcher icons render correctly in the published widget, and abandoned
+  or cancelled video calls are cleaned up without leaving queued interactions.
+
+### Upgrade notes
+
+- Startup applies the video session and media-library database migrations.
+  Back up PostgreSQL and the persistent widget asset volume; multiple app
+  instances must share the asset directory for uploaded waiting videos.
+- Configure Telnyx Video Rooms access, the signed webhook key, an HTTPS public
+  origin and Genesys queue membership before enabling Video and publishing.
+  Video routing uses Genesys message capacity. Queue wrap-up settings are
+  administered in Genesys and are preserved by widget publication.
+- Reserve Open Messaging on queues with automatic video panel opening for
+  video. Other Open Messaging interactions on those queues also match the
+  native Genesys panel filter; phone calls do not match it. Agents choose the
+  native panel size in Genesys Workspace.
+
+See [Video setup](docs/video-channel.md) and
+[Widget Studio Test Page](docs/widget-test-page.md) for configuration details.
 
 ## [1.0.0] - 2026-09-20
 

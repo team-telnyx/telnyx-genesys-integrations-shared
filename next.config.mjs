@@ -41,6 +41,14 @@ const nextConfig = {
   async headers() {
     return [
       {
+        source: "/genesys/widget-test",
+        headers: [
+          { key: "Content-Security-Policy", value: `frame-ancestors 'self' ${genesysFrameAncestors}` },
+          { key: "Referrer-Policy", value: "same-origin" },
+          { key: "Cache-Control", value: "private, no-store" },
+        ],
+      },
+      {
         source: "/genesys/widget-admin",
         headers: [
           {

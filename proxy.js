@@ -3,7 +3,7 @@ import { readGenesysAuthCookie } from '@/lib/genesys/auth-cookies.mjs'
 
 export function proxy(request) {
   // Check protected paths
-  const protectedPaths = ['/sms', '/number-lookup', '/sms-campaign', '/number-lookup-campaign', '/genesys/ai-conversation-widget'];
+  const protectedPaths = ['/sms', '/number-lookup', '/sms-campaign', '/number-lookup-campaign', '/genesys/ai-conversation-widget', '/genesys/video-widget'];
   const isProtected = protectedPaths.some(path => 
     request.nextUrl.pathname === path || request.nextUrl.pathname.startsWith(path + '/')
   );
@@ -28,7 +28,7 @@ export function proxy(request) {
   }
   
   const response = NextResponse.next()
-  if (request.nextUrl.pathname.startsWith('/genesys/ai-conversation-widget')) {
+  if (request.nextUrl.pathname.startsWith('/genesys/ai-conversation-widget') || request.nextUrl.pathname.startsWith('/genesys/video-widget')) {
     response.headers.set(
       'Content-Security-Policy',
       "frame-ancestors https://*.pure.cloud https://*.mypurecloud.com https://*.mypurecloud.ie https://*.mypurecloud.de https://*.mypurecloud.jp https://*.mypurecloud.com.au https://*.mypurecloud.ca https://*.mypurecloud.com.br"
@@ -39,5 +39,5 @@ export function proxy(request) {
 }
 
 export const config = {
-  matcher: ['/sms/:path*', '/number-lookup/:path*', '/sms-campaign/:path*', '/number-lookup-campaign/:path*', '/genesys/ai-conversation-widget/:path*'],
+  matcher: ['/sms/:path*', '/number-lookup/:path*', '/sms-campaign/:path*', '/number-lookup-campaign/:path*', '/genesys/ai-conversation-widget/:path*', '/genesys/video-widget/:path*'],
 }

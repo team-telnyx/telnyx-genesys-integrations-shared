@@ -5,11 +5,12 @@ import {
   Accessibility, AudioWaveform, Bot, Braces, CalendarClock, Check, ChevronsUpDown, Copy, Languages,
   GitBranch, LayoutGrid, Loader2, LogIn, Maximize2, MessageCircleMore, MessagesSquare,
   MousePointerClick, Palette, PanelTop, Paperclip, Pencil, Plus, Send, Settings2, Target,
-  UserRoundCheck, Zap,
+  UserRoundCheck, Zap, FlaskConical,
 } from "lucide-react";
 import { toast } from "sonner";
 import { CodeBlock, CodeBlockCopyButton } from "@/components/ai-elements/code-block";
 import WidgetStudioControls from "@/components/widget-admin/WidgetStudioControls";
+import { WidgetTestPanel, WidgetTestStage, useWidgetTestPage } from "@/components/widget-admin/WidgetTestPage";
 import WidgetStudioPreview, { WidgetStudioPreviewToolbar } from "@/components/widget-admin/WidgetStudioPreview";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,7 @@ import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Skeleton } from "@/components/ui/skeleton";
 import { DEFAULT_WIDGET_CONFIG, isValidWidgetAllowedOrigin } from "@/lib/widgets/config";
 import { evaluateWidgetDecisions, previewDecisionContext } from "@/lib/widgets/decisions";
 import { getPreviewDevice, normalizePreviewOrientation } from "@/lib/widgets/preview-devices";
@@ -42,6 +44,7 @@ const NAV_GROUPS = [
     { id: "chat", label: "Chat", icon: MessagesSquare },
     { id: "handoff", label: "Handoff", icon: UserRoundCheck },
     { id: "voice", label: "Voice", icon: AudioWaveform },
+    { id: "video", label: "Video", icon: LayoutGrid },
     { id: "attachments", label: "Attachments", icon: Paperclip },
   ] },
   { label: "Engagement", items: [
@@ -54,6 +57,7 @@ const NAV_GROUPS = [
     { id: "content", label: "Copy & locale", icon: Languages },
     { id: "accessibility", label: "Accessibility", icon: Accessibility },
     { id: "embed", label: "Embed", icon: Braces },
+    { id: "test", label: "Test Page", icon: FlaskConical },
   ] },
 ];
 
@@ -219,6 +223,7 @@ function WidgetChannelBadges({ widget }) {
   const badges = [
     channels?.messaging?.enabled && "Chat",
     channels?.voice?.enabled && "Voice",
+    channels?.video?.enabled && "Video",
   ].filter(Boolean);
 
   return (
@@ -268,6 +273,7 @@ function WidgetPicker({ widgets, selectedId, onSelect }) {
 export default function WidgetAdmin({ embedded = false, inventory = null, onPublished = null }) {
   const [auth, setAuth] = useState({ loading: true, authenticated: false });
   const [loadError, setLoadError] = useState("");
+  const [widgetsLoading, setWidgetsLoading] = useState(true);
   const [widgets, setWidgets] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [name, setNameState] = useState("");
@@ -293,6 +299,7 @@ export default function WidgetAdmin({ embedded = false, inventory = null, onPubl
   const [renaming, setRenaming] = useState(false);
   const [reauthPending, setReauthPending] = useState(false);
   const selected = widgets.find((widget) => widget.id === selectedId) || null;
+  const widgetTest = useWidgetTestPage(selected, section === "test");
   const infrastructureAllowedOrigins = useMemo(
     () => inventory?.webChatInfrastructure?.allowedOrigins || [],
     [inventory?.webChatInfrastructure?.allowedOrigins]
@@ -307,7 +314,7 @@ export default function WidgetAdmin({ embedded = false, inventory = null, onPubl
     setNameState(widget.name);
     setEnabledState(widget.enabled);
     setConfig(draftConfig);
-    setSurface(draftConfig.channels.messaging.enabled ? "chat" : "voice");
+    setSurface(draftConfig.channels.messaging.enabled ? "chat" : draftConfig.channels.voice.enabled ? "voice" : "video");
     setDirty(false);
     setLastSavedAt(null);
     setPublishProgress([]);
@@ -315,6 +322,7 @@ export default function WidgetAdmin({ embedded = false, inventory = null, onPubl
   }, [infrastructureAllowedOrigins]);
 
   const load = useCallback(async () => {
+    setWidgetsLoading(true);
     let session;
     try {
       session = await api("/api/admin/session");
@@ -323,6 +331,7 @@ export default function WidgetAdmin({ embedded = false, inventory = null, onPubl
       setAuth({ loading: false, authenticated: true, user: session.user });
     } catch (error) {
       setAuth({ loading: false, authenticated: false, error: error.message });
+      setWidgetsLoading(false);
       return;
     }
     try {
@@ -332,6 +341,8 @@ export default function WidgetAdmin({ embedded = false, inventory = null, onPubl
       if (result.widgets.length) applyWidget(result.widgets.find((item) => item.id === selectedId) || result.widgets[0]);
     } catch (error) {
       setLoadError(error.message);
+    } finally {
+      setWidgetsLoading(false);
     }
   }, [applyWidget, selectedId]);
 
@@ -487,7 +498,9 @@ export default function WidgetAdmin({ embedded = false, inventory = null, onPubl
       if (onPublished) {
         await Promise.resolve(onPublished(result.widget)).catch(() => undefined);
       }
-      toast.success(result.publication?.infrastructureSynchronized
+      toast.success(result.videoPanelSettings
+        ? `Published revision ${result.widget.published.version}; Genesys video auto-open settings updated`
+        : result.publication?.infrastructureSynchronized
         ? `Published revision ${result.widget.published.version}; channel infrastructure synchronized`
         : `Published revision ${result.widget.published.version}; UI configuration is now live`);
     } catch (error) {
@@ -622,13 +635,15 @@ export default function WidgetAdmin({ embedded = false, inventory = null, onPubl
       ? "launcher"
       : requestedSurface === "voice" && decisionResult.config.channels.voice.enabled
         ? "voice"
+        : requestedSurface === "video" && decisionResult.config.channels.video.enabled
+          ? "video"
         : requestedSurface === "home" && (
             Number(decisionResult.config.channels.messaging.enabled) +
-            Number(decisionResult.config.channels.voice.enabled) +
+            Number(decisionResult.config.channels.voice.enabled) + Number(decisionResult.config.channels.video.enabled) +
             Number(decisionResult.config.callbacks.enabled)
           ) > 1
           ? "home"
-          : decisionResult.config.channels.messaging.enabled ? "chat" : decisionResult.config.channels.voice.enabled ? "voice" : "launcher";
+          : decisionResult.config.channels.messaging.enabled ? "chat" : decisionResult.config.channels.voice.enabled ? "voice" : decisionResult.config.channels.video.enabled ? "video" : "launcher";
     setSurface(nextSurface);
     toast.success(decisionResult.matchedRule
       ? `Simulating “${decisionResult.matchedRule.name}”`
@@ -639,12 +654,13 @@ export default function WidgetAdmin({ embedded = false, inventory = null, onPubl
     if (!previewConfig) return;
     if (surface === "chat" && !previewConfig.channels.messaging.enabled) setSurface(previewConfig.channels.voice.enabled ? "voice" : "launcher");
     if (surface === "voice" && !previewConfig.channels.voice.enabled) setSurface(previewConfig.channels.messaging.enabled ? "chat" : "launcher");
+    if (surface === "video" && !previewConfig.channels.video.enabled) setSurface("launcher");
     if (surface === "callbacks" && !previewConfig.callbacks.enabled) setSurface(previewConfig.channels.messaging.enabled ? "chat" : previewConfig.channels.voice.enabled ? "voice" : "launcher");
     if (surface === "home" && (
       Number(previewConfig.channels.messaging.enabled) +
-      Number(previewConfig.channels.voice.enabled) +
+      Number(previewConfig.channels.voice.enabled) + Number(previewConfig.channels.video.enabled) +
       Number(previewConfig.callbacks.enabled)
-    ) <= 1) setSurface(previewConfig.callbacks.enabled ? "callbacks" : previewConfig.channels.messaging.enabled ? "chat" : "voice");
+    ) <= 1) setSurface(previewConfig.callbacks.enabled ? "callbacks" : previewConfig.channels.messaging.enabled ? "chat" : previewConfig.channels.voice.enabled ? "voice" : "video");
   }, [previewConfig, surface]);
 
   const snippet = useMemo(() => !selected || typeof window === "undefined" ? "" : `<script src="${window.location.origin}/widget/v1/loader.js" data-widget-id="${selected.publicId}" defer></script>`, [selected]);
@@ -657,7 +673,11 @@ export default function WidgetAdmin({ embedded = false, inventory = null, onPubl
     };
   }, [config, selected]);
 
-  if (auth.loading) return <div className={`grid place-items-center ${embedded ? "h-full min-h-80" : "min-h-screen"}`}><Loader2 className="animate-spin" /></div>;
+  if (auth.loading || (auth.authenticated && widgetsLoading)) return <div aria-label="Loading Widget Studio" className={`grid grid-cols-1 gap-4 p-4 xl:grid-cols-[285px_minmax(480px,1fr)_380px] ${embedded ? "h-full min-h-80" : "min-h-screen"}`}>
+    <div className="space-y-3"><Skeleton className="h-16 w-full" />{Array.from({ length: 8 }, (_, index) => <Skeleton key={index} className="h-9 w-full" />)}</div>
+    <Skeleton className="min-h-80 w-full rounded-xl" />
+    <div className="space-y-5"><Skeleton className="h-10 w-2/3" /><Skeleton className="h-40 w-full" /><Skeleton className="h-28 w-full" /></div>
+  </div>;
   if (!auth.authenticated) return <div className={`grid place-items-center p-6 ${embedded ? "min-h-80" : "min-h-screen"}`}><div className="max-w-md rounded-xl border bg-card p-8 text-center shadow-sm"><h1 className="text-xl font-semibold">Telnyx Widget Administration</h1><p className="mt-2 text-sm text-muted-foreground">Authenticate with Genesys Cloud to manage widget configurations.</p>{auth.error && <p className="mt-3 rounded bg-destructive/10 p-2 text-sm text-destructive">{auth.error}</p>}<Button className="mt-5" onClick={() => window.open(`/api/auth/login?popup=1&returnTo=${encodeURIComponent("/genesys/widget-admin")}`, "genesys-login", "popup,width=520,height=720")}><LogIn /> Sign in with Genesys</Button></div></div>;
   if (loadError) return <div className={`grid place-items-center p-6 ${embedded ? "min-h-80" : "min-h-screen"}`}><div className="max-w-md rounded-xl border bg-card p-8 text-center shadow-sm"><h1 className="text-xl font-semibold">Widget configurations could not be loaded</h1><p className="mt-2 text-sm text-muted-foreground">Your Genesys session is active. The widget configuration service returned an error.</p><p className="mt-3 rounded bg-destructive/10 p-2 text-sm text-destructive">{loadError}</p><Button className="mt-5" onClick={() => void load()}>Try again</Button></div></div>;
 
@@ -676,12 +696,12 @@ export default function WidgetAdmin({ embedded = false, inventory = null, onPubl
               </div>
             </div>
             <nav className="min-h-0 flex-1 overflow-y-auto p-3" aria-label="Widget configuration sections">
-              {NAV_GROUPS.map((group) => <div key={group.label} className="mb-5"><p className="mb-1.5 px-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{group.label}</p><div className="grid gap-1">{group.items.map((item) => { const Icon = item.icon; return <button key={item.id} type="button" onClick={() => { setSection(item.id); if (["chat", "handoff"].includes(item.id) && config.channels.messaging.enabled) setSurface("chat"); if (item.id === "callbacks" && config.callbacks.enabled) setSurface("callbacks"); }} className={`flex items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors ${section === item.id ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}><Icon size={17} /> {item.label}</button>; })}</div></div>)}
+              {NAV_GROUPS.map((group) => <div key={group.label} className="mb-5"><p className="mb-1.5 px-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{group.label}</p><div className="grid gap-1">{group.items.map((item) => { const Icon = item.icon; return <button key={item.id} type="button" onClick={() => { setSection(item.id); if (["chat", "handoff"].includes(item.id) && config.channels.messaging.enabled) setSurface("chat"); if (item.id === "video" && config.channels.video.enabled) setSurface("video"); if (item.id === "callbacks" && config.callbacks.enabled) setSurface("callbacks"); }} className={`flex items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors ${section === item.id ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}><Icon size={17} /> {item.label}</button>; })}</div></div>)}
             </nav>
           </div>
-          <WidgetStudioPreview widget={{ ...selected, name }} config={previewConfig} surface={surface} onSurfaceChange={setSurface} previewScenario={section === "chat" ? "typing" : section === "handoff" ? "handoff" : section === "callbacks" ? "callbacks" : null} previewUser={auth.user} decisionResult={decisionResult} showDecisionOverlay={section === "rules"} simulationRun={decisionSimulationRun} />
+          {section === "test" ? <WidgetTestStage widget={selected} test={widgetTest} /> : <WidgetStudioPreview widget={{ ...selected, name }} config={previewConfig} surface={surface} onSurfaceChange={setSurface} previewScenario={section === "chat" ? "typing" : section === "handoff" ? "handoff" : section === "callbacks" ? "callbacks" : null} previewUser={auth.user} decisionResult={decisionResult} showDecisionOverlay={section === "rules"} simulationRun={decisionSimulationRun} />}
           <div className="flex min-h-0 min-w-0 max-w-full flex-col overflow-hidden border-l bg-background">
-            <WidgetStudioPreviewToolbar
+            {section === "test" ? <WidgetTestPanel widget={selected} test={widgetTest} /> : <><WidgetStudioPreviewToolbar
               config={previewConfig}
               surface={surface}
               onSurfaceChange={setSurface}
@@ -691,6 +711,7 @@ export default function WidgetAdmin({ embedded = false, inventory = null, onPubl
             <div className="min-h-0 flex-1 overflow-hidden">
               {section === "embed" ? <EmbedPanel snippet={snippet} config={config} handoffSetup={handoffSetup} /> : <WidgetStudioControls widgetId={selectedId} section={section} config={config} name={name} enabled={enabled} assistants={inventory?.telnyxAssistants || []} sipTrunks={inventory?.genesysSipTrunks || []} channelProfiles={inventory?.channelProfiles || []} callbackProfile={inventory?.callbackProfile || null} decisionResult={decisionResult} onRunDecisionSimulation={runDecisionSimulation} setName={setName} setEnabled={setEnabled} set={set} resetSection={resetSection} />}
             </div>
+            </>}
           </div>
         </div>
         <footer className="flex min-h-16 shrink-0 items-center gap-3 border-t bg-background px-4 py-2">

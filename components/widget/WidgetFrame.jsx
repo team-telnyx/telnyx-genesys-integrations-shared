@@ -9,6 +9,8 @@ import {
   widgetTranslations,
 } from "@/lib/widgets/locales";
 import HandoffTimeline from "./HandoffTimeline";
+import { Skeleton } from "@/components/ui/skeleton";
+import VideoWidgetRuntime from "./VideoWidgetRuntime";
 import VoiceWidgetRuntime from "./VoiceWidgetRuntime";
 import { requestFreshWidgetBootstrap } from "@/lib/widgets/bootstrap-client";
 import WidgetIcon from "./WidgetIcon";
@@ -737,6 +739,9 @@ function HomeSurface({ config, callbacks, surfaces, onSelect, edgeInsets }) {
       title: config.content.callLabel,
       description: config.content.voiceSubtitle,
     },
+    surfaces.includes("video") && {
+      key: "video", icon: "video", fallback: "video", background: colors.primary, foreground: colors.onPrimary, title: config.content.videoLabel, description: config.content.videoSubtitle,
+    },
     surfaces.includes("callbacks") && {
       key: "callbacks",
       icon: "calendar-clock",
@@ -814,6 +819,7 @@ export default function WidgetFrame({
   const surfaces = [
     config?.channels.messaging.enabled && "messaging",
     config?.channels.voice.enabled && "voice",
+    config?.channels.video?.enabled && "video",
     payload?.widget?.callbacks?.enabled && "callbacks",
   ].filter(Boolean);
   const activeSurface = (previewWidget ? null : runtimeSurface) || payload?.mode;
@@ -1067,7 +1073,7 @@ export default function WidgetFrame({
   );
 
   if (!config) {
-    return <div className="grid min-h-screen place-items-center bg-transparent text-sm">{ui.aria.loading}</div>;
+    return <div className="flex h-dvh flex-col gap-3 bg-background p-3" aria-label={ui.aria.loading}><Skeleton className="h-14 w-full" /><Skeleton className="min-h-0 flex-1" /><Skeleton className="h-16 w-full" /></div>;
   }
 
   const close = () => {
@@ -1096,6 +1102,9 @@ export default function WidgetFrame({
     setCallbackOpen(surface === "callbacks");
   };
 
+  if (mode === "video") {
+    return <VideoWidgetRuntime widget={payload.widget} preview={Boolean(previewWidget)} previewScenario={previewScenario} onClose={close} onHome={home} />;
+  }
   if (mode === "voice") {
     return (
       <VoiceWidgetRuntime

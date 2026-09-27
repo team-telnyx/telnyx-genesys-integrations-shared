@@ -134,7 +134,7 @@ offers two kinds of build ref:
   has merged since the last release. Those builds label themselves development
   builds, which is exactly what they are.
 - release tags, listed newest first. The CLI reads them with
-  `gh api repos/team-telnyx/telnyx-genesys-integrations/tags` and keeps the ones
+  `gh api repos/team-telnyx/telnyx-genesys-integrations-shared/tags` and keeps the ones
   matching `^v\d+\.\d+\.\d+`, so a tag named any other way is invisible there.
 
 That distinction is not cosmetic: a build reports a clean version only when the

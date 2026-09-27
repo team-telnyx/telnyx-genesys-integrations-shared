@@ -25,7 +25,9 @@ export default function GenesysThemeToggle({ defaultTheme = "light", variant = "
   const lightOnly = pathname?.startsWith("/genesys/ai-conversation-widget");
   const databasePreference = pathname?.startsWith("/genesys/admin") ||
     pathname?.startsWith("/genesys/widget-admin");
-  const suppressedByAdminToolbar = databasePreference && variant !== "toolbar";
+  const hasInlineToolbar = databasePreference || pathname?.startsWith("/genesys/video-widget") ||
+    pathname?.startsWith("/genesys/widget-test");
+  const suppressedByAdminToolbar = hasInlineToolbar && variant !== "toolbar";
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const normalizedDefaultTheme = normalizeTheme(defaultTheme) || "light";

@@ -1,3 +1,4 @@
+import { createVideoService } from "@/lib/video/service.mjs";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getPublishedWidget } from "@/lib/widgets/store";
@@ -23,7 +24,7 @@ import { refreshGenesysWidgetVoiceSubscriptions } from "@/lib/genesys/widget-voi
 
 const requestSchema = z
   .object({
-    channel: z.enum(["messaging", "voice"]),
+    channel: z.enum(["messaging", "voice", "video"]),
     sessionToken: z.string().startsWith("wss_").max(100).optional(),
     context: z.record(
       z.string().max(120),
@@ -51,7 +52,7 @@ function errorResponse(error) {
   const status = Number.isInteger(error?.status) ? error.status : 500;
   if (status >= 500) console.error("[widget-session]", error);
   return NextResponse.json(
-    { error: status >= 500 ? "Unable to start the chat session" : error.message },
+    { error: status >= 500 ? "Unable to start the widget session" : error.message },
     { status }
   );
 }
@@ -113,6 +114,13 @@ export async function POST(request, { params }) {
     }
 
     createdSession = await createWidgetSession({ widget, channel: input.channel, origin: claims.org });
+    if (input.channel === "video") {
+      const state = await createVideoService().start({ sessionId: createdSession.id, config: widget.config,
+        customerName: String(input.context?.["customer.name"] || input.context?.customer_name || "Website visitor") });
+      return NextResponse.json({ sessionToken: createdSession.sessionToken,
+        session: { id: createdSession.id, channel: "video", status: "active" }, ...state },
+        { status: 201, headers: { "Cache-Control": "no-store" } });
+    }
     if (input.channel === "voice") {
       const session = await activateVoiceSession(createdSession.id);
       void refreshGenesysWidgetVoiceSubscriptions().catch((error) => {

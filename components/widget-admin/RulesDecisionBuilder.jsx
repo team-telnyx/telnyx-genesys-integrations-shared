@@ -66,9 +66,9 @@ function DecisionRuleCard({ rule, trace, active = false, expanded = false }) {
 
 function actionValueEditor(action, config, update) {
   if (action.type === "visibility") return <SelectBox value={action.value} onChange={(value) => update({ value })}><SelectItem value="visible">Show widget</SelectItem><SelectItem value="hidden">Hide widget</SelectItem></SelectBox>;
-  if (action.type === "channels") return <SelectBox value={action.value} onChange={(value) => update({ value })}><SelectItem value="both">Messaging and voice</SelectItem><SelectItem value="messaging">Messaging only</SelectItem><SelectItem value="voice">Voice only</SelectItem></SelectBox>;
+  if (action.type === "channels") return <SelectBox value={action.value} onChange={(value) => update({ value })}><SelectItem value="all">All channels</SelectItem><SelectItem value="both">Messaging and voice</SelectItem><SelectItem value="messaging,video">Messaging and video</SelectItem><SelectItem value="voice,video">Voice and video</SelectItem><SelectItem value="video">Video only</SelectItem><SelectItem value="messaging">Messaging only</SelectItem><SelectItem value="voice">Voice only</SelectItem></SelectBox>;
   if (action.type === "locale") return <SelectBox value={action.value} onChange={(value) => update({ value })}>{WIDGET_LOCALES.map((locale) => <SelectItem key={locale.id} value={locale.id}>{locale.flag} {locale.language} · {locale.country}</SelectItem>)}</SelectBox>;
-  if (action.type === "surface") return <SelectBox value={action.value} onChange={(value) => update({ value })}><SelectItem value="launcher">Launcher / FAB</SelectItem><SelectItem value="home">Home</SelectItem><SelectItem value="chat">Chat</SelectItem><SelectItem value="voice">Voice</SelectItem></SelectBox>;
+  if (action.type === "surface") return <SelectBox value={action.value} onChange={(value) => update({ value })}><SelectItem value="launcher">Launcher / FAB</SelectItem><SelectItem value="home">Home</SelectItem><SelectItem value="chat">Chat</SelectItem><SelectItem value="voice">Voice</SelectItem><SelectItem value="video">Video</SelectItem></SelectBox>;
   if (action.type === "route-queue") {
     const queues = config.channels.messaging.genesys.queues || [];
     const dynamicValue = String(action.value || "").includes("{{") ? String(action.value) : "";

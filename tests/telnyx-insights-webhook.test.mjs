@@ -137,18 +137,18 @@ test("conversation insight result webhooks normalize the production payload", ()
     event_type: TELNYX_CONVERSATION_INSIGHT_RESULT_EVENT_TYPE,
     payload: {
       request_id: "request-insight-1",
-      conversation_id: "66b541ed-269e-4af8-a50a-7b4101bc5ff3",
+      conversation_id: "30000000-0000-4000-8000-000000000007",
       status: "completed",
-      insight_group_id: "964de51d-f6d5-49ca-bafe-81d430a7287a",
+      insight_group_id: "30000000-0000-4000-8000-000000000008",
       results: [{ insight_id: "insight-1", result: "not persisted" }],
     },
   });
   assert.deepEqual(normalized, {
     eventType: TELNYX_CONVERSATION_INSIGHT_RESULT_EVENT_TYPE,
     status: "completed",
-    conversationId: "66b541ed-269e-4af8-a50a-7b4101bc5ff3",
+    conversationId: "30000000-0000-4000-8000-000000000007",
     callControlId: null,
-    insightGroupId: "964de51d-f6d5-49ca-bafe-81d430a7287a",
+    insightGroupId: "30000000-0000-4000-8000-000000000008",
     providerEventId: "request-insight-1",
   });
 });
@@ -173,9 +173,9 @@ test("conversation insight result webhooks notify only after completion", async 
     event_type: TELNYX_CONVERSATION_INSIGHT_RESULT_EVENT_TYPE,
     payload: {
       request_id: "request-insight-2",
-      conversation_id: "66b541ed-269e-4af8-a50a-7b4101bc5ff3",
+      conversation_id: "30000000-0000-4000-8000-000000000007",
       status: "completed",
-      insight_group_id: "964de51d-f6d5-49ca-bafe-81d430a7287a",
+      insight_group_id: "30000000-0000-4000-8000-000000000008",
       results: [{ insight_id: "insight-2", result: "must not be stored" }],
     },
   };
@@ -190,7 +190,7 @@ test("conversation insight result webhooks notify only after completion", async 
   assert.equal(recorded.accepted, true);
   assert.equal(recorded.status, "completed");
   assert.equal(recorded.eventId, "request-insight-2");
-  assert.equal(recorded.conversationId, "66b541ed-269e-4af8-a50a-7b4101bc5ff3");
+  assert.equal(recorded.conversationId, "30000000-0000-4000-8000-000000000007");
   assert.equal(queries[0].parameters[0], "request-insight-2");
   assert.match(queries[0].sql, /pg_notify/);
   assert.doesNotMatch(JSON.stringify(queries), /results|must not be stored/);
@@ -219,7 +219,7 @@ test("conversation insight result webhooks notify only after completion", async 
 });
 
 test("call control IDs resolve to exactly one Telnyx conversation", async () => {
-  const expectedConversationId = "36e27aa0-f41a-4b1f-9ccc-c865625120af";
+  const expectedConversationId = "30000000-0000-4000-8000-000000000009";
   let request = null;
   const resolved = await resolveConversationIdByCallControlId("v3:call-control-2", {
     apiKey: "test-key",
@@ -251,7 +251,7 @@ test("call control IDs resolve to exactly one Telnyx conversation", async () => 
 
 test("call insight callbacks resolve a conversation before persisting and notifying", async () => {
   const queries = [];
-  const resolvedConversationId = "36e27aa0-f41a-4b1f-9ccc-c865625120af";
+  const resolvedConversationId = "30000000-0000-4000-8000-000000000009";
   const pool = {
     async query(sql, parameters) {
       queries.push({ sql, parameters });
